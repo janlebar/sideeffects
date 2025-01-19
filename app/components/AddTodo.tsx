@@ -1,6 +1,5 @@
 import { Button, HStack, Input, useToast } from "@chakra-ui/react";
 import { useState, FormEvent } from "react";
-import { nanoid } from "nanoid";
 import { AddTodoProps, Todo } from "../types";
 
 const AddTodo: React.FC<AddTodoProps> = ({ addTodo }) => {
@@ -21,7 +20,7 @@ const AddTodo: React.FC<AddTodoProps> = ({ addTodo }) => {
     }
 
     const todo: Todo = {
-      id: Number(),
+      id: Date.now(),
       body: content,
     };
 

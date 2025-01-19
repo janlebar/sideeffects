@@ -1,7 +1,13 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { VStack, Heading, IconButton, useColorMode } from "@chakra-ui/react";
+import {
+  VStack,
+  Heading,
+  IconButton,
+  Input,
+  useColorMode,
+} from "@chakra-ui/react";
 import { FaSun, FaMoon } from "react-icons/fa";
 import TodoList from "./components/TodoList";
 import AddTodo from "./components/AddTodo";
@@ -11,6 +17,7 @@ const App: React.FC = () => {
   const [todos, setTodos] = useState<Todo[]>(() =>
     JSON.parse(localStorage.getItem("todos") || "[]")
   );
+  const [searchQuery, setSearchQuery] = useState<string>("");
 
   useEffect(() => {
     localStorage.setItem("todos", JSON.stringify(todos));
@@ -26,6 +33,10 @@ const App: React.FC = () => {
     setTodos([...todos, todo]);
   }
 
+  const filteredTodos = todos.filter((todo) =>
+    todo.body.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+
   return (
     <VStack p={4}>
       <IconButton
@@ -36,7 +47,17 @@ const App: React.FC = () => {
         onClick={toggleColorMode}
         aria-label="Toggle color mode"
       />
-      <TodoList todos={todos} deleteTodo={deleteTodo} />
+      <Heading mb={4} fontSize="xl">
+        Todo App
+      </Heading>
+      <Input
+        placeholder="Search todos..."
+        value={searchQuery}
+        onChange={(e) => setSearchQuery(e.target.value)}
+        mb={4}
+        variant="filled"
+      />
+      <TodoList todos={filteredTodos} deleteTodo={deleteTodo} />
       <AddTodo addTodo={addTodo} />
     </VStack>
   );
