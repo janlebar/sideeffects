@@ -17,7 +17,7 @@ const App: React.FC = () => {
   const [todos, setTodos] = useState<Todo[]>(() =>
     JSON.parse(localStorage.getItem("todos") || "[]")
   );
-  const [searchQuery, setSearchQuery] = useState<string>("");
+  const [search, setSearch] = useState<string>("");
 
   useEffect(() => {
     localStorage.setItem("todos", JSON.stringify(todos));
@@ -33,8 +33,8 @@ const App: React.FC = () => {
     setTodos([...todos, todo]);
   }
 
-  const filteredTodos = todos.filter((todo) =>
-    todo.body.toLowerCase().includes(searchQuery.toLowerCase())
+  const filteredList = todos.filter((todo) =>
+    todo.body.toLowerCase().includes(search.toLowerCase())
   );
 
   return (
@@ -52,12 +52,12 @@ const App: React.FC = () => {
       </Heading>
       <Input
         placeholder="Search todos..."
-        value={searchQuery}
-        onChange={(e) => setSearchQuery(e.target.value)}
+        value={search}
+        onChange={(e) => setSearch(e.target.value)}
         mb={4}
         variant="filled"
       />
-      <TodoList todos={filteredTodos} deleteTodo={deleteTodo} />
+      <TodoList todos={filteredList} deleteTodo={deleteTodo} />
       <AddTodo addTodo={addTodo} />
     </VStack>
   );
