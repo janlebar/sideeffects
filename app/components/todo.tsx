@@ -2,7 +2,6 @@
 
 import React, { useState, useEffect } from "react";
 import { VStack, Heading, IconButton, useColorMode } from "@chakra-ui/react";
-import { FaSun, FaMoon } from "react-icons/fa";
 import TodoList from "./todoList";
 import AddTodo from "./addTodo";
 import SearchBar from "./searchBar";
@@ -34,8 +33,6 @@ const MainComponent: React.FC<MainComponentProps> = ({
     }
   }, [todos, section]);
 
-  const { colorMode, toggleColorMode } = useColorMode();
-
   function deleteTodo(id: number) {
     setTodos(todos.filter((todo) => todo.id !== id));
   }
@@ -50,14 +47,6 @@ const MainComponent: React.FC<MainComponentProps> = ({
 
   return (
     <VStack p={4}>
-      <IconButton
-        icon={colorMode === "light" ? <FaSun /> : <FaMoon />}
-        isRound
-        size="lg"
-        alignSelf="flex-end"
-        onClick={toggleColorMode}
-        aria-label="Toggle color mode"
-      />
       <Heading mb={4} fontSize="xl">
         Todo App
       </Heading>

@@ -1,11 +1,19 @@
 "use client";
 
 import React, { useState } from "react";
-import { Grid, GridItem } from "@chakra-ui/react";
+import {
+  Grid,
+  GridItem,
+  IconButton,
+  useColorMode,
+  VStack,
+  Box,
+} from "@chakra-ui/react";
 import { MdLocalGroceryStore, MdOutlineWork, MdStars } from "react-icons/md";
 import { RxHobbyKnife } from "react-icons/rx";
 import { IoCalendarSharp } from "react-icons/io5";
-import { FaLayerGroup } from "react-icons/fa";
+import { FaLayerGroup, FaSun, FaMoon } from "react-icons/fa";
+import { FiMenu } from "react-icons/fi";
 import MainComponent from "@/app/components/todo";
 import { Todo, MenuItemProps } from "./types";
 
@@ -26,6 +34,7 @@ const MenuItem: React.FC<MenuItemProps> = ({
 
 const TodoApp: React.FC = () => {
   const [activeSection, setActiveSection] = useState<string>("Today");
+  const [menuOpen, setMenuOpen] = useState<boolean>(false);
 
   const [todayTodos, setTodayTodos] = useState<Todo[]>([]);
   const [upcomingTodos, setUpcomingTodos] = useState<Todo[]>([]);
@@ -33,6 +42,8 @@ const TodoApp: React.FC = () => {
   const [workTodos, setWorkTodos] = useState<Todo[]>([]);
   const [groceryTodos, setGroceryTodos] = useState<Todo[]>([]);
   const [hobbyTodos, setHobbyTodos] = useState<Todo[]>([]);
+
+  const { colorMode, toggleColorMode } = useColorMode();
 
   const sectionIcons: Record<string, React.ReactNode> = {
     Today: <MdStars className="text-yellow-400 text-xl mr-2" />,
@@ -65,11 +76,38 @@ const TodoApp: React.FC = () => {
   const { todos, setTodos } = getSectionProps();
 
   return (
-    <div className="h-screen">
-      <Grid templateColumns="250px 1fr" h="100%">
-        <GridItem className="border-r border-gray-300">
+    <div className={`h-screen`}>
+      <Grid
+        templateColumns={{ base: "1fr", md: "250px 1fr" }}
+        templateRows={{ base: "auto 1fr", md: "1fr" }}
+        h="100%"
+      >
+        {/* Mobile Menu */}
+        <GridItem
+          display={{ base: "block", md: "none" }}
+          className="p-4 border-b border-gray-300"
+        >
+          <IconButton
+            aria-label="Toggle menu"
+            icon={<FiMenu />}
+            onClick={() => setMenuOpen(!menuOpen)}
+            variant="outline"
+          />
+        </GridItem>
+
+        {/* Menu */}
+        <GridItem
+          className={`border-r border-gray-300 ${
+            colorMode === "light" ? "bg-white" : "bg-black-700"
+          } ${menuOpen ? "block" : "hidden"} md:block`}
+          w={{ base: "full", md: "250px" }}
+        >
           <div className="h-full flex flex-col">
-            <div className="text-center p-4 border-b border-gray-300 font-bold text-lg">
+            <div
+              className={`text-center p-4 border-b ${
+                colorMode === "light" ? "border-gray-300" : "border-gray-600"
+              } font-bold text-lg`}
+            >
               My To-Do App
             </div>
             <div className="flex-1">
@@ -77,41 +115,70 @@ const TodoApp: React.FC = () => {
                 className="text-yellow-400"
                 icon={MdStars}
                 label="Today"
-                onClick={() => setActiveSection("Today")}
+                onClick={() => {
+                  setActiveSection("Today");
+                  setMenuOpen(false);
+                }}
               />
               <MenuItem
                 className="text-pink-400"
                 icon={IoCalendarSharp}
                 label="Upcoming"
-                onClick={() => setActiveSection("Upcoming")}
+                onClick={() => {
+                  setActiveSection("Upcoming");
+                  setMenuOpen(false);
+                }}
               />
               <MenuItem
                 className="text-green-400"
                 icon={FaLayerGroup}
                 label="Anytime"
-                onClick={() => setActiveSection("Anytime")}
+                onClick={() => {
+                  setActiveSection("Anytime");
+                  setMenuOpen(false);
+                }}
               />
               <MenuItem
                 icon={MdOutlineWork}
                 label="Work"
-                onClick={() => setActiveSection("Work")}
+                onClick={() => {
+                  setActiveSection("Work");
+                  setMenuOpen(false);
+                }}
               />
               <MenuItem
                 icon={MdLocalGroceryStore}
                 label="Groceries"
-                onClick={() => setActiveSection("Groceries")}
+                onClick={() => {
+                  setActiveSection("Groceries");
+                  setMenuOpen(false);
+                }}
               />
               <MenuItem
                 icon={RxHobbyKnife}
                 label="Hobbies"
-                onClick={() => setActiveSection("Hobbies")}
+                onClick={() => {
+                  setActiveSection("Hobbies");
+                  setMenuOpen(false);
+                }}
               />
             </div>
           </div>
         </GridItem>
 
+        {/* Todo Section */}
         <GridItem>
-          <div className="p-8">
+          <Box className={`p-4 md:p-8`}>
+            <VStack>
+              <IconButton
+                icon={colorMode === "light" ? <FaSun /> : <FaMoon />}
+                isRound
+                size="lg"
+                alignSelf="flex-end"
+                onClick={toggleColorMode}
+                aria-label="Toggle color mode"
+              />
+            </VStack>
             <h1 className="text-2xl font-bold mb-4 flex items-center">
               {sectionIcons[activeSection] || null} {activeSection}
             </h1>
@@ -120,7 +187,7 @@ const TodoApp: React.FC = () => {
               setTodos={setTodos}
               section={activeSection}
             />
-          </div>
+          </Box>
         </GridItem>
       </Grid>
     </div>
