@@ -14,7 +14,7 @@ import { TodoListProps } from "../types";
 const TodoList: React.FC<TodoListProps> = ({ todos, deleteTodo }) => {
   if (!todos.length) {
     return (
-      <Badge colorScheme="green" p="4" m="4" borderRadius="lg">
+      <Badge p="4" m="4" borderRadius="lg">
         No Todos, yay!!!
       </Badge>
     );

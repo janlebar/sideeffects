@@ -7,7 +7,7 @@ import { MdLocalGroceryStore, MdOutlineWork, MdStars } from "react-icons/md";
 import { RxHobbyKnife } from "react-icons/rx";
 import { IoCalendarSharp } from "react-icons/io5";
 import { FaLayerGroup } from "react-icons/fa";
-import MainComponent from "@/app/todo";
+import MainComponent from "@/app/components/todo";
 import { MenuItemProps } from "./types";
 
 const MenuItem: React.FC<MenuItemProps> = ({

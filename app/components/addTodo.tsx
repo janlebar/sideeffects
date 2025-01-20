@@ -46,7 +46,7 @@ const AddTodo: React.FC<AddTodoProps> = ({ addTodo }) => {
           value={content}
           onChange={(e) => setContent(e.target.value)}
         />
-        <Button colorScheme="green" px="8" type="submit">
+        <Button px="8" type="submit">
           Add Todo
         </Button>
       </HStack>

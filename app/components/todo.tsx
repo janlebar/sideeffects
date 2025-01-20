@@ -5,10 +5,10 @@
 import React, { useState, useEffect } from "react";
 import { VStack, Heading, IconButton, useColorMode } from "@chakra-ui/react";
 import { FaSun, FaMoon } from "react-icons/fa";
-import TodoList from "./components/TodoList";
-import AddTodo from "./components/AddTodo";
-import SearchBar from "./components/SearchBar";
-import { Todo } from "./types";
+import TodoList from "./todoList";
+import AddTodo from "./addTodo";
+import SearchBar from "./searchBar";
+import { Todo } from "../types";
 
 interface MainComponentProps {
   todos: Todo[];
@@ -19,8 +19,15 @@ const MainComponent: React.FC<MainComponentProps> = ({ todos, setTodos }) => {
   const [search, setSearch] = useState<string>("");
 
   useEffect(() => {
+    const storedTodos = localStorage.getItem("todos");
+    if (storedTodos) {
+      setTodos(JSON.parse(storedTodos));
+    }
+  }, []); // This runs once when the component mounts.
+
+  useEffect(() => {
     localStorage.setItem("todos", JSON.stringify(todos));
-  }, [todos]);
+  }, [todos]); // This runs whenever `todos` changes.
 
   const { colorMode, toggleColorMode } = useColorMode();
 
@@ -50,8 +57,8 @@ const MainComponent: React.FC<MainComponentProps> = ({ todos, setTodos }) => {
         Todo App
       </Heading>
       <SearchBar search={search} setSearch={setSearch} />
-      <TodoList todos={filteredList} deleteTodo={deleteTodo} />
       <AddTodo addTodo={addTodo} />
+      <TodoList todos={filteredList} deleteTodo={deleteTodo} />
     </VStack>
   );
 };
