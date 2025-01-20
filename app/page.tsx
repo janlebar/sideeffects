@@ -3,22 +3,33 @@
 import React, { useState } from "react";
 import { Grid, GridItem } from "@chakra-ui/react";
 import { FaHome, FaTasks, FaCalendar, FaUser } from "react-icons/fa";
-import { MdLocalGroceryStore, MdOutlineWork } from "react-icons/md";
+import { MdLocalGroceryStore, MdOutlineWork, MdStars } from "react-icons/md";
 import { RxHobbyKnife } from "react-icons/rx";
+import { IoCalendarSharp } from "react-icons/io5";
+import { FaLayerGroup } from "react-icons/fa";
 import MainComponent from "@/app/todo";
+import { MenuItemProps } from "./types";
 
-const MenuItem = ({ icon: Icon, label, onClick }) => (
+const MenuItem: React.FC<MenuItemProps> = ({
+  icon: Icon,
+  label,
+  onClick,
+  className,
+}) => (
   <div
     className="flex items-center p-4 hover:bg-gray-200 cursor-pointer"
     onClick={onClick}
   >
-    <Icon className="text-xl mr-4" />
+    {/* Add className only to the Icon */}
+    <Icon className={`text-xl mr-4 ${className || ""}`} />
     <span>{label}</span>
   </div>
 );
 
 const TodoApp = () => {
-  const [activeSection, setActiveSection] = useState("Home");
+  const [activeSection, setActiveSection] = useState<string | React.ReactNode>(
+    "Home"
+  );
 
   // Separate todo states for each section
   const [homeTodos, setHomeTodos] = useState([]);
@@ -55,9 +66,43 @@ const TodoApp = () => {
             </div>
             <div className="flex-1">
               <MenuItem
-                icon={FaHome}
-                label="Home"
-                onClick={() => setActiveSection("Home")}
+                className="text-yellow-400"
+                icon={MdStars}
+                label="Today"
+                onClick={() =>
+                  setActiveSection(
+                    <span className="flex items-center">
+                      <MdStars className="text-yellow-400 text-xl mr-2" />
+                      Today
+                    </span>
+                  )
+                }
+              />
+              <MenuItem
+                className="text-pink-400"
+                icon={IoCalendarSharp}
+                label="Upcoming"
+                onClick={() =>
+                  setActiveSection(
+                    <span className="flex items-center">
+                      <IoCalendarSharp className="text-pink-400 text-xl mr-2" />
+                      Upcoming
+                    </span>
+                  )
+                }
+              />
+              <MenuItem
+                className="text-green-400"
+                icon={FaLayerGroup}
+                label="Anytime"
+                onClick={() =>
+                  setActiveSection(
+                    <span className="flex items-center">
+                      <FaLayerGroup className="text-green-400 text-xl mr-2" />
+                      Anytime
+                    </span>
+                  )
+                }
               />
               <MenuItem
                 icon={MdOutlineWork}
