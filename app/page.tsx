@@ -7,7 +7,7 @@ import { RxHobbyKnife } from "react-icons/rx";
 import { IoCalendarSharp } from "react-icons/io5";
 import { FaLayerGroup } from "react-icons/fa";
 import MainComponent from "@/app/components/todo";
-import { MenuItemProps } from "./types";
+import { Todo, MenuItemProps } from "./types";
 
 const MenuItem: React.FC<MenuItemProps> = ({
   icon: Icon,
@@ -24,15 +24,15 @@ const MenuItem: React.FC<MenuItemProps> = ({
   </div>
 );
 
-const TodoApp = () => {
+const TodoApp: React.FC = () => {
   const [activeSection, setActiveSection] = useState<string>("Today");
 
-  const [todayTodos, setTodayTodos] = useState([]);
-  const [upcomingTodos, setUpcomingTodos] = useState([]);
-  const [anytimeTodos, setAnytimeTodos] = useState([]);
-  const [workTodos, setWorkTodos] = useState([]);
-  const [groceryTodos, setGroceryTodos] = useState([]);
-  const [hobbyTodos, setHobbyTodos] = useState([]);
+  const [todayTodos, setTodayTodos] = useState<Todo[]>([]);
+  const [upcomingTodos, setUpcomingTodos] = useState<Todo[]>([]);
+  const [anytimeTodos, setAnytimeTodos] = useState<Todo[]>([]);
+  const [workTodos, setWorkTodos] = useState<Todo[]>([]);
+  const [groceryTodos, setGroceryTodos] = useState<Todo[]>([]);
+  const [hobbyTodos, setHobbyTodos] = useState<Todo[]>([]);
 
   const sectionIcons: Record<string, React.ReactNode> = {
     Today: <MdStars className="text-yellow-400 text-xl mr-2" />,
@@ -67,7 +67,6 @@ const TodoApp = () => {
   return (
     <div className="h-screen">
       <Grid templateColumns="250px 1fr" h="100%">
-        {/* Sidebar */}
         <GridItem className="border-r border-gray-300">
           <div className="h-full flex flex-col">
             <div className="text-center p-4 border-b border-gray-300 font-bold text-lg">
@@ -111,7 +110,6 @@ const TodoApp = () => {
           </div>
         </GridItem>
 
-        {/* Main Section */}
         <GridItem>
           <div className="p-8">
             <h1 className="text-2xl font-bold mb-4 flex items-center">

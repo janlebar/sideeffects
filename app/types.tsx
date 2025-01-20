@@ -1,4 +1,3 @@
-// types.tsx
 import { IconType } from "react-icons";
 
 export interface Todo {
