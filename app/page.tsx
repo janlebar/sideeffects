@@ -1,11 +1,12 @@
 "use client";
 
 import React, { useState } from "react";
-import { Grid, GridItem } from "@chakra-ui/react";
+import { Grid, GridItem, IconButton } from "@chakra-ui/react";
 import { MdLocalGroceryStore, MdOutlineWork, MdStars } from "react-icons/md";
 import { RxHobbyKnife } from "react-icons/rx";
 import { IoCalendarSharp } from "react-icons/io5";
 import { FaLayerGroup } from "react-icons/fa";
+import { FiMenu } from "react-icons/fi";
 import MainComponent from "@/app/components/todo";
 import { Todo, MenuItemProps } from "./types";
 
@@ -26,6 +27,7 @@ const MenuItem: React.FC<MenuItemProps> = ({
 
 const TodoApp: React.FC = () => {
   const [activeSection, setActiveSection] = useState<string>("Today");
+  const [menuOpen, setMenuOpen] = useState<boolean>(false);
 
   const [todayTodos, setTodayTodos] = useState<Todo[]>([]);
   const [upcomingTodos, setUpcomingTodos] = useState<Todo[]>([]);
@@ -66,8 +68,29 @@ const TodoApp: React.FC = () => {
 
   return (
     <div className="h-screen">
-      <Grid templateColumns="250px 1fr" h="100%">
-        <GridItem className="border-r border-gray-300">
+      <Grid
+        templateColumns={{ base: "1fr", md: "250px 1fr" }}
+        templateRows={{ base: "auto 1fr", md: "1fr" }}
+        h="100%"
+      >
+        <GridItem
+          display={{ base: "block", md: "none" }}
+          className="p-4 border-b border-gray-300"
+        >
+          <IconButton
+            aria-label="Toggle menu"
+            icon={<FiMenu />}
+            onClick={() => setMenuOpen(!menuOpen)}
+            variant="outline"
+          />
+        </GridItem>
+
+        <GridItem
+          className={`border-r border-gray-300 bg-white ${
+            menuOpen ? "block" : "hidden"
+          } md:block`}
+          w={{ base: "full", md: "250px" }}
+        >
           <div className="h-full flex flex-col">
             <div className="text-center p-4 border-b border-gray-300 font-bold text-lg">
               My To-Do App
@@ -77,41 +100,59 @@ const TodoApp: React.FC = () => {
                 className="text-yellow-400"
                 icon={MdStars}
                 label="Today"
-                onClick={() => setActiveSection("Today")}
+                onClick={() => {
+                  setActiveSection("Today");
+                  setMenuOpen(false);
+                }}
               />
               <MenuItem
                 className="text-pink-400"
                 icon={IoCalendarSharp}
                 label="Upcoming"
-                onClick={() => setActiveSection("Upcoming")}
+                onClick={() => {
+                  setActiveSection("Upcoming");
+                  setMenuOpen(false);
+                }}
               />
               <MenuItem
                 className="text-green-400"
                 icon={FaLayerGroup}
                 label="Anytime"
-                onClick={() => setActiveSection("Anytime")}
+                onClick={() => {
+                  setActiveSection("Anytime");
+                  setMenuOpen(false);
+                }}
               />
               <MenuItem
                 icon={MdOutlineWork}
                 label="Work"
-                onClick={() => setActiveSection("Work")}
+                onClick={() => {
+                  setActiveSection("Work");
+                  setMenuOpen(false);
+                }}
               />
               <MenuItem
                 icon={MdLocalGroceryStore}
                 label="Groceries"
-                onClick={() => setActiveSection("Groceries")}
+                onClick={() => {
+                  setActiveSection("Groceries");
+                  setMenuOpen(false);
+                }}
               />
               <MenuItem
                 icon={RxHobbyKnife}
                 label="Hobbies"
-                onClick={() => setActiveSection("Hobbies")}
+                onClick={() => {
+                  setActiveSection("Hobbies");
+                  setMenuOpen(false);
+                }}
               />
             </div>
           </div>
         </GridItem>
 
         <GridItem>
-          <div className="p-8">
+          <div className="p-4 md:p-8">
             <h1 className="text-2xl font-bold mb-4 flex items-center">
               {sectionIcons[activeSection] || null} {activeSection}
             </h1>
