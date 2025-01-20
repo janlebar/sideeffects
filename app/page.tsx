@@ -115,7 +115,11 @@ const TodoApp: React.FC = () => {
             <h1 className="text-2xl font-bold mb-4 flex items-center">
               {sectionIcons[activeSection] || null} {activeSection}
             </h1>
-            <MainComponent todos={todos} setTodos={setTodos} />
+            <MainComponent
+              todos={todos}
+              setTodos={setTodos}
+              section={activeSection}
+            />
           </div>
         </GridItem>
       </Grid>
