@@ -23,11 +23,11 @@ const MainComponent: React.FC<MainComponentProps> = ({ todos, setTodos }) => {
     if (storedTodos) {
       setTodos(JSON.parse(storedTodos));
     }
-  }, []); // This runs once when the component mounts.
+  }, []);
 
   useEffect(() => {
     localStorage.setItem("todos", JSON.stringify(todos));
-  }, [todos]); // This runs whenever `todos` changes.
+  }, [todos]);
 
   const { colorMode, toggleColorMode } = useColorMode();
 

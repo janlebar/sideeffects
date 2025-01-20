@@ -2,7 +2,6 @@
 
 import React, { useState } from "react";
 import { Grid, GridItem } from "@chakra-ui/react";
-import { FaHome, FaTasks, FaCalendar, FaUser } from "react-icons/fa";
 import { MdLocalGroceryStore, MdOutlineWork, MdStars } from "react-icons/md";
 import { RxHobbyKnife } from "react-icons/rx";
 import { IoCalendarSharp } from "react-icons/io5";

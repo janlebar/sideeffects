@@ -44,7 +44,9 @@ const AddTodo: React.FC<AddTodoProps> = ({ addTodo }) => {
           variant="filled"
           placeholder="Add a Todo"
           value={content}
-          onChange={(e) => setContent(e.target.value)}
+          onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+            setContent(e.target.value)
+          }
         />
         <Button px="8" type="submit">
           Add Todo
