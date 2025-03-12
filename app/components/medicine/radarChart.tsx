@@ -91,10 +91,8 @@ function RadarChart({ data, color }: RadarChartProps) {
       options: {
         scales: {
           r: {
-            ticks: {
-              beginAtZero: true,
-              max: 10,
-            },
+            min: 0, // Set the minimum value to 0
+            max: 10, // Set the maximum value to 10
           },
         },
       },
