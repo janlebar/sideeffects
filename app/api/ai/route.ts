@@ -8,16 +8,19 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "API key not found" }, { status: 500 });
     }
 
-    // Extract user input
+    // Extract user medicinename
     const body = await req.json();
-    const { followingInput } = body;
+    const { medicinename } = body;
 
-    if (!followingInput) {
-      console.error("❌ Missing input");
-      return NextResponse.json({ error: "Missing input" }, { status: 400 });
+    if (!medicinename) {
+      console.error("❌ Missing medicinename");
+      return NextResponse.json(
+        { error: "Missing medicinename" },
+        { status: 400 }
+      );
     }
 
-    console.log("✅ Received Input:", followingInput);
+    console.log("✅ Received medicinename:", medicinename);
 
     // Define API URL
     const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`;
@@ -31,7 +34,7 @@ export async function POST(req: Request) {
           {
             parts: [
               {
-                text: `What side effects could be problematic using these medicines ${followingInput} at the same time?`,
+                text: `What side effects could be problematic using these medicines ${medicinename} at the same time?`,
               },
             ],
           },

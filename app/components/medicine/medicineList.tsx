@@ -1,3 +1,5 @@
+//medicineList.tsx
+
 import React from "react";
 import {
   HStack,
@@ -9,13 +11,16 @@ import {
   Badge,
 } from "@chakra-ui/react";
 import { FaTrash } from "react-icons/fa";
-import { TodoListProps } from "../types";
+import { MedicineListProps } from "../../types";
 
-const TodoList: React.FC<TodoListProps> = ({ todos, deleteTodo }) => {
-  if (!todos.length) {
+const MedicineList: React.FC<MedicineListProps> = ({
+  medicine,
+  deleteMedicine,
+}) => {
+  if (!medicine.length) {
     return (
       <Badge p="4" m="4" borderRadius="lg">
-        No Todos, yay!!!
+        No Medicine added!
       </Badge>
     );
   }
@@ -31,15 +36,15 @@ const TodoList: React.FC<TodoListProps> = ({ todos, deleteTodo }) => {
       maxW={{ base: "90vw", sm: "80vw", lg: "50vw", xl: "40vw" }}
       alignItems="stretch"
     >
-      {todos.map((todo) => (
-        <HStack key={todo.id}>
-          <Text>{todo.body}</Text>
+      {medicine.map((medicine) => (
+        <HStack key={medicine.id}>
+          <Text>{medicine.body}</Text>
           <Spacer />
           <IconButton
             icon={<FaTrash />}
             isRound={true}
             aria-label="Delete Todo"
-            onClick={() => deleteTodo(todo.id)}
+            onClick={() => deleteMedicine(medicine.id)}
           />
         </HStack>
       ))}
@@ -47,4 +52,4 @@ const TodoList: React.FC<TodoListProps> = ({ todos, deleteTodo }) => {
   );
 };
 
-export default TodoList;
+export default MedicineList;

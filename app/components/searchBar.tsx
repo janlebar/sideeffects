@@ -14,7 +14,7 @@ const SearchBar: React.FC<SearchBarProps> = ({ search, setSearch }) => {
       mb={4}
     >
       <Input
-        placeholder="Search todos..."
+        placeholder="Search..."
         value={search}
         onChange={(e) => setSearch(e.target.value)}
         variant="filled"

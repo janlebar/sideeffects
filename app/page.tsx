@@ -1,3 +1,5 @@
+//page.tsx
+//page.tsx
 "use client";
 
 import React, { useState } from "react";
@@ -9,13 +11,13 @@ import {
   VStack,
   Box,
 } from "@chakra-ui/react";
-import { MdLocalGroceryStore, MdOutlineWork, MdStars } from "react-icons/md";
-import { RxHobbyKnife } from "react-icons/rx";
-import { IoCalendarSharp } from "react-icons/io5";
-import { FaLayerGroup, FaSun, FaMoon } from "react-icons/fa";
+import { GiMedicines } from "react-icons/gi";
+import { RiRobot3Line } from "react-icons/ri";
+import { FaSun, FaMoon } from "react-icons/fa";
 import { FiMenu } from "react-icons/fi";
-import MainComponent from "@/app/components/todo";
-import { Todo, MenuItemProps } from "./types";
+import MainComponent from "@/app/medicine";
+import { Medicine, MenuItemProps } from "./types";
+import AIComponent from "@/app/components/aidoctor/ai";
 
 const MenuItem: React.FC<MenuItemProps> = ({
   icon: Icon,
@@ -32,48 +34,33 @@ const MenuItem: React.FC<MenuItemProps> = ({
   </div>
 );
 
-const TodoApp: React.FC = () => {
-  const [activeSection, setActiveSection] = useState<string>("Today");
+const medicineApp: React.FC = () => {
+  const [activeSection, setActiveSection] = useState<string>("Medicine");
   const [menuOpen, setMenuOpen] = useState<boolean>(false);
 
-  const [todayTodos, setTodayTodos] = useState<Todo[]>([]);
-  const [upcomingTodos, setUpcomingTodos] = useState<Todo[]>([]);
-  const [anytimeTodos, setAnytimeTodos] = useState<Todo[]>([]);
-  const [workTodos, setWorkTodos] = useState<Todo[]>([]);
-  const [groceryTodos, setGroceryTodos] = useState<Todo[]>([]);
-  const [hobbyTodos, setHobbyTodos] = useState<Todo[]>([]);
+  const [todayMedicines, setTodayMedicines] = useState<Medicine[]>([]);
+  const [upcomingMedicines, setUpcomingMedicines] = useState<Medicine[]>([]);
 
   const { colorMode, toggleColorMode } = useColorMode();
+  const followingInput = "Aspirin";
 
   const sectionIcons: Record<string, React.ReactNode> = {
-    Today: <MdStars className="text-yellow-400 text-xl mr-2" />,
-    Upcoming: <IoCalendarSharp className="text-pink-400 text-xl mr-2" />,
-    Anytime: <FaLayerGroup className="text-green-400 text-xl mr-2" />,
-    Work: <MdOutlineWork className="text-blue-400 text-xl mr-2" />,
-    Groceries: <MdLocalGroceryStore className="text-orange-400 text-xl mr-2" />,
-    Hobbies: <RxHobbyKnife className="text-purple-400 text-xl mr-2" />,
+    Today: <GiMedicines className="text-xl mr-2" />,
+    AI: <RiRobot3Line className="text-pink-400 text-xl mr-2" />,
   };
 
   const getSectionProps = () => {
     switch (activeSection) {
-      case "Today":
-        return { todos: todayTodos, setTodos: setTodayTodos };
-      case "Upcoming":
-        return { todos: upcomingTodos, setTodos: setUpcomingTodos };
-      case "Anytime":
-        return { todos: anytimeTodos, setTodos: setAnytimeTodos };
-      case "Work":
-        return { todos: workTodos, setTodos: setWorkTodos };
-      case "Groceries":
-        return { todos: groceryTodos, setTodos: setGroceryTodos };
-      case "Hobbies":
-        return { todos: hobbyTodos, setTodos: setHobbyTodos };
+      case "Medicine":
+        return { medicines: todayMedicines, setMedicines: setTodayMedicines };
+      case "AI":
+        return { medicines: todayMedicines, setMedicines: setTodayMedicines };
       default:
-        return { todos: [], setTodos: () => {} };
+        return { medicines: [], setMedicines: () => {} };
     }
   };
 
-  const { todos, setTodos } = getSectionProps();
+  const { medicines, setMedicines } = getSectionProps();
 
   return (
     <div className={`h-screen`}>
@@ -108,57 +95,23 @@ const TodoApp: React.FC = () => {
                 colorMode === "light" ? "border-gray-300" : "border-gray-600"
               } font-bold text-lg`}
             >
-              My To-Do App
+              My Medicine
             </div>
             <div className="flex-1">
               <MenuItem
-                className="text-yellow-400"
-                icon={MdStars}
-                label="Today"
+                icon={GiMedicines}
+                label="Medicine"
                 onClick={() => {
-                  setActiveSection("Today");
+                  setActiveSection("Medicine");
                   setMenuOpen(false);
                 }}
               />
               <MenuItem
                 className="text-pink-400"
-                icon={IoCalendarSharp}
-                label="Upcoming"
+                icon={RiRobot3Line}
+                label="AI"
                 onClick={() => {
-                  setActiveSection("Upcoming");
-                  setMenuOpen(false);
-                }}
-              />
-              <MenuItem
-                className="text-green-400"
-                icon={FaLayerGroup}
-                label="Anytime"
-                onClick={() => {
-                  setActiveSection("Anytime");
-                  setMenuOpen(false);
-                }}
-              />
-              <MenuItem
-                icon={MdOutlineWork}
-                label="Work"
-                onClick={() => {
-                  setActiveSection("Work");
-                  setMenuOpen(false);
-                }}
-              />
-              <MenuItem
-                icon={MdLocalGroceryStore}
-                label="Groceries"
-                onClick={() => {
-                  setActiveSection("Groceries");
-                  setMenuOpen(false);
-                }}
-              />
-              <MenuItem
-                icon={RxHobbyKnife}
-                label="Hobbies"
-                onClick={() => {
-                  setActiveSection("Hobbies");
+                  setActiveSection("AI");
                   setMenuOpen(false);
                 }}
               />
@@ -166,7 +119,7 @@ const TodoApp: React.FC = () => {
           </div>
         </GridItem>
 
-        {/* Todo Section */}
+        {/* Medicine & AI Sections */}
         <GridItem>
           <Box className={`p-4 md:p-8`}>
             <VStack>
@@ -182,11 +135,23 @@ const TodoApp: React.FC = () => {
             <h1 className="text-2xl font-bold mb-4 flex items-center">
               {sectionIcons[activeSection] || null} {activeSection}
             </h1>
-            <MainComponent
-              todos={todos}
-              setTodos={setTodos}
-              section={activeSection}
-            />
+
+            {activeSection === "Medicine" ? (
+              <MainComponent
+                medicines={medicines}
+                setMedicines={setMedicines}
+                section={activeSection}
+              />
+            ) : (
+              <AIComponent
+                input={[
+                  { id: "1", body: "aspirin" },
+                  { id: "2", body: "viagra" },
+                ]}
+              />
+
+              // <AIComponent input={medicines} />
+            )}
           </Box>
         </GridItem>
       </Grid>
@@ -194,4 +159,4 @@ const TodoApp: React.FC = () => {
   );
 };
 
-export default TodoApp;
+export default medicineApp;
