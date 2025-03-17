@@ -54,7 +54,7 @@ const medicineApp: React.FC = () => {
       case "Medicine":
         return { medicines: todayMedicines, setMedicines: setTodayMedicines };
       case "AI":
-        return { medicines: todayMedicines, setMedicines: setTodayMedicines };
+        return { medicines: todayMedicines, setMedicines: setTodayMedicines }; // Fix: Pass todayMedicines to AI
       default:
         return { medicines: [], setMedicines: () => {} };
     }
@@ -143,14 +143,15 @@ const medicineApp: React.FC = () => {
                 section={activeSection}
               />
             ) : (
-              <AIComponent
-                input={[
-                  { id: "1", body: "aspirin" },
-                  { id: "2", body: "viagra" },
-                ]}
-              />
+              // <AIComponent
+              // input={[{ medicines }]}
+              // input={[
+              //   { id: "1", body: "aspirin" },
+              //   { id: "2", body: "viagra" },
+              // ]}
+              // />
 
-              // <AIComponent input={medicines} />
+              <AIComponent input={medicines} />
             )}
           </Box>
         </GridItem>

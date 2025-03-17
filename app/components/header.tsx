@@ -6,8 +6,8 @@ const Header = () => {
     <header>
       {/* Hero Section */}
       <div
-        className="relative pt-16 pb-32 flex content-center items-center justify-center"
-        style={{ minHeight: "75vh" }}
+        className="relative pt-8 pb-16 flex content-center items-center justify-center"
+        style={{ minHeight: "15vh" }} // Reduced height
       >
         <div
           className="absolute top-0 w-full h-full bg-center bg-cover"
@@ -22,13 +22,13 @@ const Header = () => {
           <div className="items-center flex flex-wrap">
             <div className="w-full lg:w-6/12 px-4 ml-auto mr-auto text-center">
               <div className="pr-12">
-                <h1 className="items-center justify-center text-white font-semibold text-5xl">
+                <h1 className="items-center justify-center text-white font-semibold text-4xl">
                   <Image
                     src="/sideeffectlogo.svg"
                     alt="Side Effect"
-                    width={400} // Increased the width
-                    height={200} // Increased the height
-                    className="mx-auto" // This centers the image
+                    width={300} // Adjusted width
+                    height={150} // Adjusted height
+                    className="mx-auto"
                   />
                 </h1>
               </div>
@@ -37,19 +37,8 @@ const Header = () => {
         </div>
         <div
           className="top-auto bottom-0 left-0 right-0 w-full absolute pointer-events-none overflow-hidden"
-          style={{ height: "70px" }}
-        >
-          {/* <svg
-            className="absolute bottom-0 overflow-hidden"
-            xmlns="http://www.w3.org/2000/svg"
-            preserveAspectRatio="none"
-            viewBox="0 0 2560 100"
-            x="0"
-            y="0"
-          >
-            <polygon className="text-white fill-current" points="2560 0 2560 100 0 100"></polygon>
-          </svg> */}
-        </div>
+          style={{ height: "50px" }} // Reduced height
+        ></div>
       </div>
     </header>
   );
