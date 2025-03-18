@@ -39,7 +39,6 @@ const medicineApp: React.FC = () => {
   const [menuOpen, setMenuOpen] = useState<boolean>(false);
 
   const [todayMedicines, setTodayMedicines] = useState<Medicine[]>([]);
-  const [upcomingMedicines, setUpcomingMedicines] = useState<Medicine[]>([]);
 
   const { colorMode, toggleColorMode } = useColorMode();
   const followingInput = "Aspirin";
