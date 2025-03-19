@@ -10,6 +10,7 @@ import SearchBar from "./components/searchBar";
 import { Medicine, MainComponentProps } from "./types";
 import PieChart from "./components/medicine/pieChart";
 import RadarChart from "./components/medicine/radarChart";
+import initSqlJs from "sql.js";
 
 const MainComponent: React.FC<MainComponentProps> = ({
   medicines,
@@ -59,28 +60,91 @@ const MainComponent: React.FC<MainComponentProps> = ({
   }
 
   // 🔹 Fetch side effects from /api/scrape.ts
+  // const fetchSideEffects = async () => {
+  //   setLoading(true);
+  //   const newSideEffects: Record<string, any> = {};
+
+  //   for (const medicine of medicines) {
+  //     const formattedName = medicine.body.toLowerCase().replace(/\s+/g, "-"); // Format medicine name
+  //     const apiUrl = `/api/scrape?url=https://www.drugs.com/sfx/${formattedName}-side-effects.html`;
+
+  //     try {
+  //       const response = await fetch(apiUrl);
+  //       if (!response.ok)
+  //         throw new Error(`Error fetching data for ${medicine.body}`);
+
+  //       const data = await response.json();
+  //       newSideEffects[medicine.body] = data;
+  //     } catch (error) {
+  //       toast({
+  //         title: `Failed to fetch side effects for ${medicine.body}`,
+  //         status: "error",
+  //         duration: 3000,
+  //         isClosable: true,
+  //       });
+  //     }
+  //   }
+
+  //   setSideEffects(newSideEffects);
+  //   setLoading(false);
+  // };
+
   const fetchSideEffects = async () => {
     setLoading(true);
-    const newSideEffects: Record<string, any> = {};
+    const newSideEffects: Record<
+      string,
+      { category: string; occurrence: number; symptoms: string[] }[]
+    > = {};
+
+    // Initialize SQL.js
+    const SQL = await initSqlJs();
+
+    // Fetch the SQLite .db file from public folder
+    const response = await fetch("/medicine.db");
+    const buffer = await response.arrayBuffer(); // Convert it into an ArrayBuffer
+
+    // Load the database into memory
+    const db = new SQL.Database(new Uint8Array(buffer));
 
     for (const medicine of medicines) {
-      const formattedName = medicine.body.toLowerCase().replace(/\s+/g, "-"); // Format medicine name
-      const apiUrl = `/api/scrape?url=https://www.drugs.com/sfx/${formattedName}-side-effects.html`;
+      const formattedName = medicine.body.toLowerCase().replace(/\s+/g, "-");
 
-      try {
-        const response = await fetch(apiUrl);
-        if (!response.ok)
-          throw new Error(`Error fetching data for ${medicine.body}`);
+      // Query the database
+      const query = `SELECT * FROM side_effects WHERE Medicine = ?`;
+      const stmt = db.prepare(query);
+      stmt.bind([medicine.body]);
 
-        const data = await response.json();
-        newSideEffects[medicine.body] = data;
-      } catch (error) {
-        toast({
-          title: `Failed to fetch side effects for ${medicine.body}`,
-          status: "error",
-          duration: 3000,
-          isClosable: true,
+      const results = [];
+      while (stmt.step()) {
+        const row = stmt.getAsObject();
+        results.push({
+          category: String(row.Category || ""), // Ensure it's a string
+          occurrence: Number(row.Occurrence || 0), // Ensure it's a number
+          symptoms:
+            typeof row.Symptoms === "string" ? row.Symptoms.split(", ") : [], // Ensure it's an array
         });
+      }
+      stmt.free();
+
+      if (results.length > 0) {
+        newSideEffects[medicine.body] = results;
+      } else {
+        // If not in DB, fetch from API
+        const apiUrl = `/api/scrape?url=https://www.drugs.com/sfx/${formattedName}-side-effects.html`;
+        try {
+          const response = await fetch(apiUrl);
+          if (!response.ok)
+            throw new Error(`Error fetching data for ${medicine.body}`);
+          const data = await response.json();
+          newSideEffects[medicine.body] = data;
+        } catch (error) {
+          toast({
+            title: `Failed to fetch side effects for ${medicine.body}`,
+            status: "error",
+            duration: 3000,
+            isClosable: true,
+          });
+        }
       }
     }
 
