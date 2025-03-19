@@ -10,7 +10,7 @@ import SearchBar from "./components/searchBar";
 import { Medicine, MainComponentProps } from "./types";
 import PieChart from "./components/medicine/pieChart";
 import RadarChart from "./components/medicine/radarChart";
-import initSqlJs from "sql.js";
+import { createDbWorker } from "sql.js-httpvfs";
 
 const MainComponent: React.FC<MainComponentProps> = ({
   medicines,
@@ -91,61 +91,62 @@ const MainComponent: React.FC<MainComponentProps> = ({
 
   const fetchSideEffects = async () => {
     setLoading(true);
-    const newSideEffects: Record<
-      string,
-      { category: string; occurrence: number; symptoms: string[] }[]
-    > = {};
+    const newSideEffects: Record<string, any> = {};
 
-    // Initialize SQL.js
-    const SQL = await initSqlJs();
+    try {
+      // Define file paths (ensure these are in your `public/` folder)
+      const workerUrl = "/sqljs-httpvfs/sqlite.worker.js";
+      const wasmUrl = "/sqljs-httpvfs/sql-wasm.wasm";
+      const dbUrl = "/mydatabase.db"; // Ensure this is correct
 
-    // Fetch the SQLite .db file from public folder
-    const response = await fetch("/medicine.db");
-    const buffer = await response.arrayBuffer(); // Convert it into an ArrayBuffer
+      // Create a database worker
+      const worker = await createDbWorker(
+        [
+          {
+            from: "inline",
+            config: {
+              serverMode: "full", // Use "full" mode to allow reading
+              url: dbUrl,
+            },
+          },
+        ],
+        wasmUrl,
+        workerUrl
+      );
 
-    // Load the database into memory
-    const db = new SQL.Database(new Uint8Array(buffer));
+      for (const medicine of medicines) {
+        const query = `SELECT * FROM side_effects WHERE Medicine = ?`;
 
-    for (const medicine of medicines) {
-      const formattedName = medicine.body.toLowerCase().replace(/\s+/g, "-");
+        // Execute query
+        const results = await worker.db.exec(query, [medicine.body]);
 
-      // Query the database
-      const query = `SELECT * FROM side_effects WHERE Medicine = ?`;
-      const stmt = db.prepare(query);
-      stmt.bind([medicine.body]);
-
-      const results = [];
-      while (stmt.step()) {
-        const row = stmt.getAsObject();
-        results.push({
-          category: String(row.Category || ""), // Ensure it's a string
-          occurrence: Number(row.Occurrence || 0), // Ensure it's a number
-          symptoms:
-            typeof row.Symptoms === "string" ? row.Symptoms.split(", ") : [], // Ensure it's an array
-        });
-      }
-      stmt.free();
-
-      if (results.length > 0) {
-        newSideEffects[medicine.body] = results;
-      } else {
-        // If not in DB, fetch from API
-        const apiUrl = `/api/scrape?url=https://www.drugs.com/sfx/${formattedName}-side-effects.html`;
-        try {
-          const response = await fetch(apiUrl);
-          if (!response.ok)
+        if (results.length > 0) {
+          newSideEffects[medicine.body] = results.map((row: any) => ({
+            category: String(row.Category || ""),
+            occurrence: Number(row.Occurrence || 0),
+            symptoms: row.Symptoms ? row.Symptoms.split(", ") : [],
+          }));
+        } else {
+          // Fallback API fetch if no data is found in the database
+          const formattedName = medicine.body
+            .toLowerCase()
+            .replace(/\s+/g, "-");
+          const apiUrl = `/api/scrape?url=https://www.drugs.com/sfx/${formattedName}-side-effects.html`;
+          const apiResponse = await fetch(apiUrl);
+          if (!apiResponse.ok)
             throw new Error(`Error fetching data for ${medicine.body}`);
-          const data = await response.json();
+          const data = await apiResponse.json();
           newSideEffects[medicine.body] = data;
-        } catch (error) {
-          toast({
-            title: `Failed to fetch side effects for ${medicine.body}`,
-            status: "error",
-            duration: 3000,
-            isClosable: true,
-          });
         }
       }
+    } catch (error) {
+      console.error("Database error:", error);
+      toast({
+        title: "Error accessing the database",
+        status: "error",
+        duration: 3000,
+        isClosable: true,
+      });
     }
 
     setSideEffects(newSideEffects);
