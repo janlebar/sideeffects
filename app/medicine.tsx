@@ -11,6 +11,7 @@ import { Medicine, MainComponentProps } from "./types";
 import PieChart from "./components/medicine/pieChart";
 import RadarChart from "./components/medicine/radarChart";
 import { createDbWorker } from "sql.js-httpvfs";
+import initSqlJs from "sql.js-httpvfs";
 
 const MainComponent: React.FC<MainComponentProps> = ({
   medicines,
@@ -94,31 +95,22 @@ const MainComponent: React.FC<MainComponentProps> = ({
     const newSideEffects: Record<string, any> = {};
 
     try {
-      // Define file paths (ensure these are in your `public/` folder)
+      // ✅ Correct worker & wasm URLs
       const workerUrl = "/sqljs-httpvfs/sqlite.worker.js";
       const wasmUrl = "/sqljs-httpvfs/sql-wasm.wasm";
-      const dbUrl = "/mydatabase.db"; // Ensure this is correct
+      const dbUrl = "/mydatabase.db"; // Ensure this is also in `public/`
 
-      // Create a database worker
-      const worker = await createDbWorker(
-        [
-          {
-            from: "inline",
-            config: {
-              serverMode: "full", // Use "full" mode to allow reading
-              url: dbUrl,
-            },
-          },
-        ],
-        wasmUrl,
-        workerUrl
-      );
+      // ✅ Properly initialize SQL.js
+      const SQL = await initSqlJs({ locateFile: () => wasmUrl });
+
+      // ✅ Use `createDbWorker` to initialize the database
+      const worker = await SQL.createDbWorker([{ from: "inline" }], workerUrl);
+
+      const db = await worker.database.fromUrl(dbUrl, workerUrl);
 
       for (const medicine of medicines) {
         const query = `SELECT * FROM side_effects WHERE Medicine = ?`;
-
-        // Execute query
-        const results = await worker.db.exec(query, [medicine.body]);
+        const results = db.exec(query, [medicine.body]);
 
         if (results.length > 0) {
           newSideEffects[medicine.body] = results.map((row: any) => ({
@@ -127,7 +119,6 @@ const MainComponent: React.FC<MainComponentProps> = ({
             symptoms: row.Symptoms ? row.Symptoms.split(", ") : [],
           }));
         } else {
-          // Fallback API fetch if no data is found in the database
           const formattedName = medicine.body
             .toLowerCase()
             .replace(/\s+/g, "-");
