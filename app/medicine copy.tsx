@@ -1,3 +1,5 @@
+//medicine.tsx
+
 "use client";
 
 import React, { useState, useEffect } from "react";
@@ -8,7 +10,6 @@ import SearchBar from "./components/searchBar";
 import { Medicine, MainComponentProps } from "./types";
 import PieChart from "./components/medicine/pieChart";
 import RadarChart from "./components/medicine/radarChart";
-import initSqlJs from "sql.js";
 
 const MainComponent: React.FC<MainComponentProps> = ({
   medicines,
@@ -20,6 +21,21 @@ const MainComponent: React.FC<MainComponentProps> = ({
   const [loading, setLoading] = useState<boolean>(false);
   const toast = useToast();
   const [viewMode, setViewMode] = useState<"list" | "graph">("list");
+
+  const colors = [
+    "#1748ffB3",
+    "#17bcffB3",
+    "#31c3ffB3",
+    "#7ed9ffB3",
+    "#98e1ffB3",
+    "#002366B3", // Deep Navy Blue
+    "#005f99B3", // Medium Persian Blue
+    "#008ECCB3", // Vivid Sky Blue
+    "#0F52BAB3", // Sapphire Blue
+    "#1D2951B3", // Space Cadet Blue
+    "#4682B4B3", // Steel Blue
+    "#5D8AA8B3", // Air Force Blue
+  ];
 
   useEffect(() => {
     const storedMedicines = localStorage.getItem(`medicine_${section}`);
@@ -34,60 +50,47 @@ const MainComponent: React.FC<MainComponentProps> = ({
     }
   }, [medicines, section]);
 
+  function deleteMedicine(id: string) {
+    setMedicines(medicines.filter((medicine) => medicine.id !== id));
+  }
+
+  function addMedicine(medicine: Medicine) {
+    setMedicines([...medicines, medicine]);
+  }
+
+  // 🔹 Fetch side effects from /api/scrape.ts
   const fetchSideEffects = async () => {
     setLoading(true);
     const newSideEffects: Record<string, any> = {};
-    try {
-      const SQL = await initSqlJs({
-        locateFile: (file) => `https://sql.js.org/dist/${file}`,
-      });
 
-      const response = await fetch("/database.sqlite");
-      const buffer = await response.arrayBuffer();
-      const db = new SQL.Database(new Uint8Array(buffer));
+    for (const medicine of medicines) {
+      const formattedName = medicine.body.toLowerCase().replace(/\s+/g, "-"); // Format medicine name
+      const apiUrl = `/api/scrape?url=https://www.drugs.com/sfx/${formattedName}-side-effects.html`;
 
-      for (const medicine of medicines) {
-        const stmt = db.prepare(
-          "SELECT * FROM side_effects WHERE Medicine = ?"
-        );
-        stmt.bind([medicine.body]);
-        const rows: any[] = [];
+      try {
+        const response = await fetch(apiUrl);
+        if (!response.ok)
+          throw new Error(`Error fetching data for ${medicine.body}`);
 
-        while (stmt.step()) {
-          rows.push(stmt.getAsObject());
-        }
-        stmt.free();
-
-        if (rows.length > 0) {
-          newSideEffects[medicine.body] = rows.map((row) => ({
-            category: String(row.Category || ""),
-            occurrence: Number(row.Occurrence || 0),
-            symptoms: row.Symptoms ? row.Symptoms.split(", ") : [],
-          }));
-        } else {
-          const formattedName = medicine.body
-            .toLowerCase()
-            .replace(/\s+/g, "-");
-          const apiUrl = `/api/scrape?url=https://www.drugs.com/sfx/${formattedName}-side-effects.html`;
-          const apiResponse = await fetch(apiUrl);
-          if (!apiResponse.ok)
-            throw new Error(`Error fetching data for ${medicine.body}`);
-          const data = await apiResponse.json();
-          newSideEffects[medicine.body] = data;
-        }
+        const data = await response.json();
+        newSideEffects[medicine.body] = data;
+      } catch (error) {
+        toast({
+          title: `Failed to fetch side effects for ${medicine.body}`,
+          status: "error",
+          duration: 3000,
+          isClosable: true,
+        });
       }
-    } catch (error) {
-      console.error("Database error:", error);
-      toast({
-        title: "Error accessing the database",
-        status: "error",
-        duration: 3000,
-        isClosable: true,
-      });
     }
+
     setSideEffects(newSideEffects);
     setLoading(false);
   };
+
+  const filteredList = medicines.filter((medicine) =>
+    medicine.body.toLowerCase().includes(search.toLowerCase())
+  );
 
   return (
     <VStack p={4}>
@@ -95,24 +98,25 @@ const MainComponent: React.FC<MainComponentProps> = ({
         Medicine Tracker
       </Heading>
       <SearchBar search={search} setSearch={setSearch} />
-      <AddMedicine
-        addMedicine={(medicine) => setMedicines([...medicines, medicine])}
-      />
-      <Button mt={4} onClick={fetchSideEffects} isLoading={loading}>
+      <AddMedicine addMedicine={addMedicine} />
+      <Button
+        className=" font-bold py-2 px-4 rounded-md ml-5 mt-1 mr-10 border border-blue-400"
+        mt={4}
+        onClick={fetchSideEffects}
+        isLoading={loading}
+      >
         Find Side Effects
       </Button>
-      <MedicineList
-        medicine={medicines.filter((m) =>
-          m.body.toLowerCase().includes(search.toLowerCase())
-        )}
-        deleteMedicine={(id) =>
-          setMedicines(medicines.filter((m) => m.id !== id))
-        }
-      />
+      <MedicineList medicine={filteredList} deleteMedicine={deleteMedicine} />
+
+      {/* 🔹 Side Effects Display */}
       {Object.keys(sideEffects).length > 0 && (
         <VStack mt={4} p={4} borderWidth="1px" borderRadius="lg" w="100%">
           <Heading size="md">Side Effects</Heading>
+
+          {/* 🔹 Toggle Button */}
           <Button
+            className=" font-bold py-2 px-4 rounded-md ml-5 mt-1 mr-10 border border-blue-400"
             onClick={() => setViewMode(viewMode === "list" ? "graph" : "list")}
             mb={4}
           >
@@ -120,7 +124,9 @@ const MainComponent: React.FC<MainComponentProps> = ({
               ? "Switch to Graph View"
               : "Switch to List View"}
           </Button>
-          {viewMode === "list" && (
+
+          {/* 🔹 List View */}
+          {viewMode === "list" && Object.keys(sideEffects).length > 0 && (
             <VStack w="100%">
               {Object.entries(sideEffects).map(([medName, effects]) => (
                 <Box
@@ -130,12 +136,12 @@ const MainComponent: React.FC<MainComponentProps> = ({
                   borderRadius="md"
                   w="100%"
                 >
-                  <Heading size="sm" mb={2}>
+                  <Heading size="sm" mb={2} textAlign="left">
                     {medName}
                   </Heading>
                   {effects.map((effect: any) => (
                     <Box
-                      key={effect.category}
+                      key={effect.categoryId}
                       p={2}
                       mb={2}
                       borderBottom="1px solid #ccc"
@@ -143,7 +149,7 @@ const MainComponent: React.FC<MainComponentProps> = ({
                       <Text fontWeight="bold">
                         {effect.category} ({effect.occurrence}% occurrence)
                       </Text>
-                      <ul>
+                      <ul style={{ paddingLeft: "20px" }}>
                         {effect.symptoms.map(
                           (symptom: string, index: number) => (
                             <li key={index}>
@@ -158,20 +164,17 @@ const MainComponent: React.FC<MainComponentProps> = ({
               ))}
             </VStack>
           )}
+
+          {/* 🔹 Graphical View (Placeholder) */}
           {viewMode === "graph" && (
             <Box p={4} w="100%" textAlign="center">
               <Text fontSize="lg" fontWeight="bold">
                 Graphical representation.
               </Text>
+              {/* 🚀 Placeholder for future graphs */}
               <div className="max-w-sm mx-auto">
-                <RadarChart
-                  data={Object.values(sideEffects)}
-                  color={["#1748ffB3", "#17bcffB3"]}
-                />
-                <PieChart
-                  data={Object.values(sideEffects)}
-                  color={["#31c3ffB3", "#7ed9ffB3"]}
-                />
+                <RadarChart data={Object.values(sideEffects)} color={colors} />
+                <PieChart data={Object.values(sideEffects)} color={colors} />
               </div>
             </Box>
           )}
