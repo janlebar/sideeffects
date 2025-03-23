@@ -47,16 +47,23 @@ const MainComponent: React.FC<MainComponentProps> = ({
       const db = new SQL.Database(new Uint8Array(buffer));
 
       for (const medicine of medicines) {
-        const stmt = db.prepare(
-          "SELECT * FROM side_effects WHERE Medicine = ?"
+        const query =
+          "SELECT * FROM side_effects WHERE LOWER(Medicine) = LOWER(?)";
+        console.log(
+          `Executing SQL Query: ${query} with value:`,
+          medicine.body.toLowerCase()
         );
-        stmt.bind([medicine.body]);
+
+        const stmt = db.prepare(query);
+        stmt.bind([medicine.body.toLowerCase()]);
         const rows: any[] = [];
 
         while (stmt.step()) {
           rows.push(stmt.getAsObject());
         }
         stmt.free();
+
+        console.log(`Query Result for ${medicine.body}:`, rows);
 
         if (rows.length > 0) {
           newSideEffects[medicine.body] = rows.map((row) => ({
@@ -69,10 +76,16 @@ const MainComponent: React.FC<MainComponentProps> = ({
             .toLowerCase()
             .replace(/\s+/g, "-");
           const apiUrl = `/api/scrape?url=https://www.drugs.com/sfx/${formattedName}-side-effects.html`;
+
+          console.log(`Fetching side effects from API: ${apiUrl}`);
+
           const apiResponse = await fetch(apiUrl);
           if (!apiResponse.ok)
             throw new Error(`Error fetching data for ${medicine.body}`);
           const data = await apiResponse.json();
+
+          console.log(`API Response for ${medicine.body}:`, data);
+
           newSideEffects[medicine.body] = data;
         }
       }
@@ -85,6 +98,8 @@ const MainComponent: React.FC<MainComponentProps> = ({
         isClosable: true,
       });
     }
+
+    console.log("Final Side Effects Data:", newSideEffects);
     setSideEffects(newSideEffects);
     setLoading(false);
   };
