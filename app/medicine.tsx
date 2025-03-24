@@ -42,13 +42,13 @@ const MainComponent: React.FC<MainComponentProps> = ({
         locateFile: (file) => `https://sql.js.org/dist/${file}`,
       });
 
-      const response = await fetch("/database.sqlite");
+      const response = await fetch("/data.sqlite");
       const buffer = await response.arrayBuffer();
       const db = new SQL.Database(new Uint8Array(buffer));
 
       for (const medicine of medicines) {
         const query =
-          "SELECT * FROM side_effects WHERE LOWER(Medicine) = LOWER(?)";
+          "SELECT * FROM medicine_data WHERE LOWER(medicine) = LOWER(?)";
         console.log(
           `Executing SQL Query: ${query} with value:`,
           medicine.body.toLowerCase()
