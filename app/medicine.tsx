@@ -167,7 +167,7 @@ const MainComponent: React.FC<MainComponentProps> = ({
           const formattedName = medicine.body
             .toLowerCase()
             .replace(/\s+/g, "-");
-          const apiUrl = `/api/scrape?url=https://www.drugs.com/sfx/${formattedName}-side-effects.html`;
+          const apiUrl = `/api/scrape?url=${process.env.BASE_URL}/sfx/${formattedName}-side-effects.html`;
 
           console.log(`Fetching side effects from API: ${apiUrl}`);
 

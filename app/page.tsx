@@ -1,5 +1,3 @@
-//page.tsx
-//page.tsx
 "use client";
 
 import React, { useState } from "react";
@@ -143,14 +141,14 @@ const medicineApp: React.FC = () => {
                 section={activeSection}
               />
             ) : (
-              <AIComponent
-                input={[
-                  { id: "1", body: "aspirin" },
-                  { id: "2", body: "viagra" },
-                ]}
-              />
+              // <AIComponent
+              //   input={[
+              //     { id: "1", body: "aspirin" },
+              //     { id: "2", body: "viagra" },
+              //   ]}
+              // />
 
-              // <AIComponent input={medicines} />
+              <AIComponent input={medicines} />
             )}
           </Box>
         </GridItem>

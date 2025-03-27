@@ -6,8 +6,8 @@ const Header = () => {
     <header>
       {/* Hero Section */}
       <div
-        className="relative pt-16 pb-32 flex content-center items-center justify-center"
-        style={{ minHeight: "75vh" }}
+        className="relative pt-10 pb-20 flex content-center items-center justify-center"
+        style={{ minHeight: "20vh" }}
       >
         <div
           className="absolute top-0 w-full h-full bg-center bg-cover"
@@ -26,9 +26,9 @@ const Header = () => {
                   <Image
                     src="/sideeffectlogo.svg"
                     alt="Side Effect"
-                    width={400} // Increased the width
-                    height={200} // Increased the height
-                    className="mx-auto" // This centers the image
+                    width={400}
+                    height={200}
+                    className="mx-auto"
                   />
                 </h1>
               </div>
@@ -38,18 +38,7 @@ const Header = () => {
         <div
           className="top-auto bottom-0 left-0 right-0 w-full absolute pointer-events-none overflow-hidden"
           style={{ height: "70px" }}
-        >
-          {/* <svg
-            className="absolute bottom-0 overflow-hidden"
-            xmlns="http://www.w3.org/2000/svg"
-            preserveAspectRatio="none"
-            viewBox="0 0 2560 100"
-            x="0"
-            y="0"
-          >
-            <polygon className="text-white fill-current" points="2560 0 2560 100 0 100"></polygon>
-          </svg> */}
-        </div>
+        ></div>
       </div>
     </header>
   );
