@@ -34,44 +34,136 @@ const MainComponent: React.FC<MainComponentProps> = ({
     }
   }, [medicines, section]);
 
+  // const fetchSideEffects = async () => {
+  //   setLoading(true);
+  //   const newSideEffects: Record<string, any> = {};
+
+  //   try {
+  //     const SQL = await initSqlJs({
+  //       locateFile: (file) => `https://sql.js.org/dist/${file}`,
+  //     });
+
+  //     const response = await fetch("/medicine.sqlite");
+  //     const buffer = await response.arrayBuffer();
+  //     const db = new SQL.Database(new Uint8Array(buffer));
+
+  //     for (const medicine of medicines) {
+  //       const query =
+  //         "SELECT * FROM medicine_data WHERE LOWER(medicine) = LOWER(?)";
+  //       const stmt = db.prepare(query);
+  //       stmt.bind([medicine.body.toLowerCase()]);
+
+  //       const rows: any[] = [];
+
+  //       while (stmt.step()) {
+  //         rows.push(stmt.getAsObject());
+  //       }
+  //       stmt.free();
+
+  //       console.log(`Raw Query Result for ${medicine.body}:`, rows);
+
+  //       if (rows.length > 0) {
+  //         newSideEffects[medicine.body] = rows.flatMap((row) => {
+  //           return row.side_effects
+  //             .split("\n")
+  //             .map((line: string) => {
+  //               const match = line.match(
+  //                 /^(.*?)\s\(([\d.]+)% occurrence\):\s(.+)$/
+  //               );
+  //               if (match) {
+  //                 return {
+  //                   category: match[1].trim(),
+  //                   occurrence: parseFloat(match[2]),
+  //                   symptoms: match[3].split(", ").map((s) => s.trim()),
+  //                 };
+  //               }
+  //               return null;
+  //             })
+  //             .filter(Boolean); // Remove null values
+  //         });
+  //       } else {
+  //         // API fallback if no data is found in the database
+  //         const formattedName = medicine.body
+  //           .toLowerCase()
+  //           .replace(/\s+/g, "-");
+  //         const apiUrl = `/api/scrape?url=https://www.drugs.com/sfx/${formattedName}-side-effects.html`;
+
+  //         console.log(`Fetching side effects from API: ${apiUrl}`);
+
+  //         const apiResponse = await fetch(apiUrl);
+  //         if (!apiResponse.ok)
+  //           throw new Error(`Error fetching data for ${medicine.body}`);
+  //         const data = await apiResponse.json();
+
+  //         console.log(`API Response for ${medicine.body}:`, data);
+
+  //         newSideEffects[medicine.body] = data;
+  //       }
+  //     }
+  //   } catch (error) {
+  //     console.error("Database error:", error);
+  //     toast({
+  //       title: "Error accessing the database",
+  //       status: "error",
+  //       duration: 3000,
+  //       isClosable: true,
+  //     });
+  //   }
+
+  //   console.log("Final Parsed Side Effects Data:", newSideEffects);
+  //   setSideEffects(newSideEffects);
+  //   setLoading(false);
+  // };
+
   const fetchSideEffects = async () => {
     setLoading(true);
     const newSideEffects: Record<string, any> = {};
+
     try {
       const SQL = await initSqlJs({
         locateFile: (file) => `https://sql.js.org/dist/${file}`,
       });
 
-      const response = await fetch("/data.sqlite");
+      const response = await fetch("/medicine.sqlite");
       const buffer = await response.arrayBuffer();
       const db = new SQL.Database(new Uint8Array(buffer));
 
       for (const medicine of medicines) {
         const query =
-          "SELECT * FROM medicine_data WHERE LOWER(medicine) = LOWER(?)";
-        console.log(
-          `Executing SQL Query: ${query} with value:`,
-          medicine.body.toLowerCase()
-        );
-
+          "SELECT side_effects FROM medicine_data WHERE LOWER(medicine) = LOWER(?)";
         const stmt = db.prepare(query);
         stmt.bind([medicine.body.toLowerCase()]);
-        const rows: any[] = [];
 
+        let rows: any[] = [];
         while (stmt.step()) {
           rows.push(stmt.getAsObject());
         }
         stmt.free();
 
-        console.log(`Query Result for ${medicine.body}:`, rows);
+        console.log(`Raw Query Result for ${medicine.body}:`, rows);
 
         if (rows.length > 0) {
-          newSideEffects[medicine.body] = rows.map((row) => ({
-            category: String(row.Category || ""),
-            occurrence: Number(row.Occurrence || 0),
-            symptoms: row.Symptoms ? row.Symptoms.split(", ") : [],
-          }));
+          newSideEffects[medicine.body] = rows.flatMap((row) => {
+            return row.side_effects
+              .split("||")
+              .map((section: string) => {
+                const match = section.match(
+                  /(.+?):\s(?:Very common|Common|Uncommon|Rare|Very rare):\s\(([\d.<]+)%.*?\):\s(.+)/
+                );
+                if (match) {
+                  return {
+                    category: match[1].trim(),
+                    occurrence: parseFloat(match[2].replace("<", "")), // Convert "<0.1" to 0.1
+                    symptoms: match[3].split(", ").map((s: string) => s.trim()),
+                    medicine: medicine.body, // Include medicine name for RadarChart
+                  };
+                }
+                return null;
+              })
+              .filter(Boolean);
+          });
         } else {
+          // API fallback if no data is found in the database
           const formattedName = medicine.body
             .toLowerCase()
             .replace(/\s+/g, "-");
@@ -85,7 +177,6 @@ const MainComponent: React.FC<MainComponentProps> = ({
           const data = await apiResponse.json();
 
           console.log(`API Response for ${medicine.body}:`, data);
-
           newSideEffects[medicine.body] = data;
         }
       }
@@ -99,7 +190,7 @@ const MainComponent: React.FC<MainComponentProps> = ({
       });
     }
 
-    console.log("Final Side Effects Data:", newSideEffects);
+    console.log("Final Parsed Side Effects Data:", newSideEffects);
     setSideEffects(newSideEffects);
     setLoading(false);
   };
