@@ -1,7 +1,64 @@
 import * as cheerio from "cheerio"; // For parsing HTML
-import axios from "axios"; // To make HTTP requests
-import { NextRequest, NextResponse } from "next/server"; // Use the new NextRequest and NextResponse from next/server
-import { URL } from "url"; // Node.js URL module
+import { NextRequest, NextResponse } from "next/server";
+import { chromium, type Browser } from "playwright";
+
+// Playwright launches a real browser process, so this handler must run on Node.
+export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
+
+// Reuse a single browser instance across requests instead of launching one per
+// request (launching Chrome is the slow part).
+let browserPromise: Promise<Browser> | null = null;
+
+function getBrowser(): Promise<Browser> {
+  if (!browserPromise) {
+    browserPromise = chromium
+      .launch({
+        // Use the full Chromium build in "new" headless mode. The default
+        // headless *shell* is easily fingerprinted by Akamai and gets a 403.
+        channel: "chromium",
+        headless: true,
+      })
+      .catch((err) => {
+        // Reset so the next request retries instead of reusing a rejected promise.
+        browserPromise = null;
+        throw err;
+      });
+  }
+  return browserPromise;
+}
+
+// drugs.com is behind Akamai, which blocks non-browser HTTP clients (plain
+// axios/curl get a 403). A real headless browser passes and returns the page.
+const USER_AGENT =
+  "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36";
+
+async function fetchHtml(url: string): Promise<string> {
+  const browser = await getBrowser();
+  const page = await browser.newPage({
+    userAgent: USER_AGENT,
+    // Limit what the page can load; we only need the HTML.
+    javaScriptEnabled: true,
+  });
+
+  try {
+    const response = await page.goto(url, {
+      waitUntil: "domcontentloaded",
+      timeout: 30_000,
+    });
+
+    if (!response) {
+      throw new Error("No response from upstream");
+    }
+    if (!response.ok()) {
+      throw new Error(`Upstream returned ${response.status()}`);
+    }
+
+    return await page.content();
+  } finally {
+    await page.close().catch(() => {});
+  }
+}
 
 // Export the handler for the GET method
 export async function GET(req: NextRequest) {
@@ -13,10 +70,23 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: "No URL provided" }, { status: 400 });
   }
 
+  // Only allow drugs.com URLs (prevents this route from being used as an SSRF proxy).
   try {
-    // Fetch the HTML from the given URL using axios
-    const { data } = await axios.get(url);
-    const $ = cheerio.load(data); // Parse the HTML data using cheerio
+    const parsed = new URL(url);
+    if (!/(^|\.)drugs\.com$/i.test(parsed.hostname)) {
+      return NextResponse.json(
+        { error: "Only drugs.com URLs are allowed" },
+        { status: 400 }
+      );
+    }
+  } catch {
+    return NextResponse.json({ error: "Invalid URL" }, { status: 400 });
+  }
+
+  try {
+    // Fetch the rendered HTML through a headless browser (Akamai blocks plain HTTP clients).
+    const html = await fetchHtml(url);
+    const $ = cheerio.load(html); // Parse the HTML data using cheerio
 
     // Selecting the h3 elements that contain side effect information
     const allTitles = $("#professional-info").nextAll("h3").get();
