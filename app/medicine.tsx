@@ -68,6 +68,34 @@ const MainComponent: React.FC<MainComponentProps> = ({
     }
   }, [medicines, section]);
 
+  useEffect(() => {
+    // Preload aspirin + viagra side effects and open in chart view on first load.
+    const preload = async () => {
+      const names = ["aspirin", "viagra"];
+      const results: Record<string, SideEffectsResult> = {};
+      await Promise.all(
+        names.map(async (name) => {
+          try {
+            const res = await fetch(
+              `/api/side-effects?medicine=${encodeURIComponent(name)}`
+            );
+            if (res.ok) {
+              const data: SideEffectsResult = await res.json();
+              results[name] = data;
+            }
+          } catch {
+            /* ignore preload failures */
+          }
+        })
+      );
+      if (Object.keys(results).length > 0) {
+        setSideEffects(results);
+        setViewMode("graph");
+      }
+    };
+    preload();
+  }, []);
+
   function deleteMedicine(id: string) {
     setMedicines(medicines.filter((medicine) => medicine.id !== id));
   }
