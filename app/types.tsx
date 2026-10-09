@@ -26,3 +26,21 @@ export interface MainComponentProps {
   setMedicines: React.Dispatch<React.SetStateAction<Medicine[]>>;
   section: string;
 }
+
+// Side-effect data returned by /api/side-effects (see lib/sideEffects).
+export interface SideEffectEntry {
+  frequency: string;
+  percentage?: string;
+  symptoms: string[];
+}
+
+export interface SideEffectCategory {
+  category: string;
+  effects: SideEffectEntry[];
+}
+
+export interface SideEffectsResult {
+  medicine: string;
+  source: "database" | "scraped" | "none";
+  categories: SideEffectCategory[];
+}

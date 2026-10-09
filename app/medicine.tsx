@@ -3,13 +3,29 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { VStack, Heading, Button, useToast, Box, Text } from "@chakra-ui/react";
+import {
+  VStack,
+  Heading,
+  Button,
+  useToast,
+  Box,
+  Text,
+  Badge,
+} from "@chakra-ui/react";
 import MedicineList from "./components/medicine/medicineList";
 import AddMedicine from "./components/medicine/addMedicine";
 import SearchBar from "./components/searchBar";
-import { Medicine, MainComponentProps } from "./types";
+import { Medicine, MainComponentProps, SideEffectsResult } from "./types";
 import PieChart from "./components/medicine/pieChart";
 import RadarChart from "./components/medicine/radarChart";
+
+// Extract the largest percentage from a label like "1% to 10%", "10% or more",
+// "0.01% to 0.1%" or "less than 0.1%" for the (placeholder) charts.
+function percentageToNumber(percentage?: string): number {
+  if (!percentage) return 0;
+  const numbers = percentage.match(/\d+(?:\.\d+)?/g)?.map(Number) ?? [];
+  return numbers.length ? Math.max(...numbers) : 0;
+}
 
 const MainComponent: React.FC<MainComponentProps> = ({
   medicines,
@@ -17,7 +33,9 @@ const MainComponent: React.FC<MainComponentProps> = ({
   section,
 }) => {
   const [search, setSearch] = useState<string>("");
-  const [sideEffects, setSideEffects] = useState<Record<string, any>>({});
+  const [sideEffects, setSideEffects] = useState<
+    Record<string, SideEffectsResult>
+  >({});
   const [loading, setLoading] = useState<boolean>(false);
   const toast = useToast();
   const [viewMode, setViewMode] = useState<"list" | "graph">("list");
@@ -58,21 +76,22 @@ const MainComponent: React.FC<MainComponentProps> = ({
     setMedicines([...medicines, medicine]);
   }
 
-  // 🔹 Fetch side effects from /api/scrape.ts
+  // 🔹 Fetch side effects: uses the SQLite cache, falling back to a live scrape.
   const fetchSideEffects = async () => {
     setLoading(true);
-    const newSideEffects: Record<string, any> = {};
+    const newSideEffects: Record<string, SideEffectsResult> = {};
 
     for (const medicine of medicines) {
-      const formattedName = medicine.body.toLowerCase().replace(/\s+/g, "-"); // Format medicine name
-      const apiUrl = `/api/scrape?url=https://www.drugs.com/sfx/${formattedName}-side-effects.html`;
+      const apiUrl = `/api/side-effects?medicine=${encodeURIComponent(
+        medicine.body
+      )}`;
 
       try {
         const response = await fetch(apiUrl);
         if (!response.ok)
           throw new Error(`Error fetching data for ${medicine.body}`);
 
-        const data = await response.json();
+        const data: SideEffectsResult = await response.json();
         newSideEffects[medicine.body] = data;
       } catch (error) {
         toast({
@@ -90,6 +109,17 @@ const MainComponent: React.FC<MainComponentProps> = ({
 
   const filteredList = medicines.filter((medicine) =>
     medicine.body.toLowerCase().includes(search.toLowerCase())
+  );
+
+  // Flatten results into the shape the (placeholder) charts expect.
+  const graphData = Object.entries(sideEffects).map(([medName, result]) =>
+    result.categories.flatMap((cat) =>
+      cat.effects.map((effect) => ({
+        category: cat.category,
+        occurrence: percentageToNumber(effect.percentage),
+        medicine: medName,
+      }))
+    )
   );
 
   return (
@@ -128,7 +158,7 @@ const MainComponent: React.FC<MainComponentProps> = ({
           {/* 🔹 List View */}
           {viewMode === "list" && Object.keys(sideEffects).length > 0 && (
             <VStack w="100%">
-              {Object.entries(sideEffects).map(([medName, effects]) => (
+              {Object.entries(sideEffects).map(([medName, result]) => (
                 <Box
                   key={medName}
                   p={3}
@@ -138,28 +168,57 @@ const MainComponent: React.FC<MainComponentProps> = ({
                 >
                   <Heading size="sm" mb={2} textAlign="left">
                     {medName}
-                  </Heading>
-                  {effects.map((effect: any) => (
-                    <Box
-                      key={effect.categoryId}
-                      p={2}
-                      mb={2}
-                      borderBottom="1px solid #ccc"
+                    <Badge
+                      ml={2}
+                      colorScheme={
+                        result.source === "database"
+                          ? "green"
+                          : result.source === "scraped"
+                          ? "orange"
+                          : "gray"
+                      }
                     >
-                      <Text fontWeight="bold">
-                        {effect.category} ({effect.occurrence}% occurrence)
-                      </Text>
-                      <ul style={{ paddingLeft: "20px" }}>
-                        {effect.symptoms.map(
-                          (symptom: string, index: number) => (
-                            <li key={index}>
-                              <Text fontSize="sm">{symptom}</Text>
-                            </li>
-                          )
-                        )}
-                      </ul>
-                    </Box>
-                  ))}
+                      {result.source === "database"
+                        ? "cached"
+                        : result.source === "scraped"
+                        ? "live"
+                        : "no data"}
+                    </Badge>
+                  </Heading>
+
+                  {result.categories.length === 0 ? (
+                    <Text fontSize="sm" color="gray.500">
+                      No side-effect data found.
+                    </Text>
+                  ) : (
+                    result.categories.map((cat) => (
+                      <Box
+                        key={cat.category}
+                        p={2}
+                        mb={2}
+                        borderBottom="1px solid #ccc"
+                      >
+                        <Text fontWeight="bold">{cat.category}</Text>
+                        {cat.effects.map((effect, i) => (
+                          <Box key={`${effect.frequency}-${i}`} mt={1}>
+                            <Text fontSize="sm" fontWeight="semibold">
+                              {effect.frequency}
+                              {effect.percentage
+                                ? ` (${effect.percentage})`
+                                : ""}
+                            </Text>
+                            <ul style={{ paddingLeft: "20px" }}>
+                              {effect.symptoms.map((symptom, index) => (
+                                <li key={index}>
+                                  <Text fontSize="sm">{symptom}</Text>
+                                </li>
+                              ))}
+                            </ul>
+                          </Box>
+                        ))}
+                      </Box>
+                    ))
+                  )}
                 </Box>
               ))}
             </VStack>
@@ -173,8 +232,8 @@ const MainComponent: React.FC<MainComponentProps> = ({
               </Text>
               {/* 🚀 Placeholder for future graphs */}
               <div className="max-w-sm mx-auto">
-                <RadarChart data={Object.values(sideEffects)} color={colors} />
-                <PieChart data={Object.values(sideEffects)} color={colors} />
+                <RadarChart data={graphData} color={colors} />
+                <PieChart data={graphData} color={colors} />
               </div>
             </Box>
           )}
