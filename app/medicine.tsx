@@ -2,7 +2,7 @@
 
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import {
   VStack,
   Heading,
@@ -16,16 +16,14 @@ import MedicineList from "./components/medicine/medicineList";
 import AddMedicine from "./components/medicine/addMedicine";
 import SearchBar from "./components/searchBar";
 import { Medicine, MainComponentProps, SideEffectsResult } from "./types";
-import PieChart from "./components/medicine/pieChart";
-import RadarChart from "./components/medicine/radarChart";
+import AdverseEffectsOverview from "./components/medicine/adverseEffectsOverview";
 
-// Extract the largest percentage from a label like "1% to 10%", "10% or more",
-// "0.01% to 0.1%" or "less than 0.1%" for the (placeholder) charts.
-function percentageToNumber(percentage?: string): number {
-  if (!percentage) return 0;
-  const numbers = percentage.match(/\d+(?:\.\d+)?/g)?.map(Number) ?? [];
-  return numbers.length ? Math.max(...numbers) : 0;
-}
+// Example medicines preloaded on first run so a new user sees how the app
+// works. They behave like normal medicines and can be deleted/replaced.
+const EXAMPLE_MEDICINES: Medicine[] = [
+  { id: "example-aspirin", body: "Aspirin" },
+  { id: "example-viagra", body: "Viagra" },
+];
 
 const MainComponent: React.FC<MainComponentProps> = ({
   medicines,
@@ -38,63 +36,70 @@ const MainComponent: React.FC<MainComponentProps> = ({
   >({});
   const [loading, setLoading] = useState<boolean>(false);
   const toast = useToast();
-  const [viewMode, setViewMode] = useState<"list" | "graph">("list");
+  const [viewMode, setViewMode] = useState<"overview" | "details">("overview");
 
-  const colors = [
-    "#1748ffB3",
-    "#17bcffB3",
-    "#31c3ffB3",
-    "#7ed9ffB3",
-    "#98e1ffB3",
-    "#002366B3", // Deep Navy Blue
-    "#005f99B3", // Medium Persian Blue
-    "#008ECCB3", // Vivid Sky Blue
-    "#0F52BAB3", // Sapphire Blue
-    "#1D2951B3", // Space Cadet Blue
-    "#4682B4B3", // Steel Blue
-    "#5D8AA8B3", // Air Force Blue
-  ];
+  const didMount = useRef(false);
+  const didInitialFetch = useRef(false);
 
+  // Load saved medicines, or seed the example set on the very first run.
   useEffect(() => {
-    const storedMedicines = localStorage.getItem(`medicine_${section}`);
-    if (storedMedicines) {
-      setMedicines(JSON.parse(storedMedicines));
+    const stored = localStorage.getItem(`medicine_${section}`);
+    const seeded = localStorage.getItem("example_seeded");
+    if (stored) {
+      setMedicines(JSON.parse(stored));
+    } else if (!seeded) {
+      localStorage.setItem("example_seeded", "1");
+      setMedicines(EXAMPLE_MEDICINES);
     }
-  }, [section, setMedicines]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [section]);
 
+  // Persist medicines on every change after the initial mount.
   useEffect(() => {
-    if (medicines.length > 0) {
-      localStorage.setItem(`medicine_${section}`, JSON.stringify(medicines));
+    if (!didMount.current) {
+      didMount.current = true;
+      return;
     }
+    localStorage.setItem(`medicine_${section}`, JSON.stringify(medicines));
   }, [medicines, section]);
 
+  const fetchSideEffects = async (list: Medicine[]) => {
+    setLoading(true);
+    const results: Record<string, SideEffectsResult> = {};
+
+    await Promise.all(
+      list.map(async (medicine) => {
+        try {
+          const response = await fetch(
+            `/api/side-effects?medicine=${encodeURIComponent(medicine.body)}`
+          );
+          if (!response.ok)
+            throw new Error(`Error fetching data for ${medicine.body}`);
+          results[medicine.body] = await response.json();
+        } catch (error) {
+          toast({
+            title: `Failed to fetch side effects for ${medicine.body}`,
+            status: "error",
+            duration: 3000,
+            isClosable: true,
+          });
+        }
+      })
+    );
+
+    setSideEffects(results);
+    setLoading(false);
+  };
+
+  // Auto-fetch side effects on first load (uses the seeded examples).
   useEffect(() => {
-    // Preload aspirin + viagra side effects and open in chart view on first load.
-    const preload = async () => {
-      const names = ["aspirin", "viagra"];
-      const results: Record<string, SideEffectsResult> = {};
-      await Promise.all(
-        names.map(async (name) => {
-          try {
-            const res = await fetch(
-              `/api/side-effects?medicine=${encodeURIComponent(name)}`
-            );
-            if (res.ok) {
-              const data: SideEffectsResult = await res.json();
-              results[name] = data;
-            }
-          } catch {
-            /* ignore preload failures */
-          }
-        })
-      );
-      if (Object.keys(results).length > 0) {
-        setSideEffects(results);
-        setViewMode("graph");
-      }
-    };
-    preload();
-  }, []);
+    if (!didInitialFetch.current && medicines.length > 0) {
+      didInitialFetch.current = true;
+      fetchSideEffects(medicines);
+      setViewMode("overview");
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [medicines]);
 
   function deleteMedicine(id: string) {
     setMedicines(medicines.filter((medicine) => medicine.id !== id));
@@ -104,64 +109,23 @@ const MainComponent: React.FC<MainComponentProps> = ({
     setMedicines([...medicines, medicine]);
   }
 
-  // 🔹 Fetch side effects: uses the SQLite cache, falling back to a live scrape.
-  const fetchSideEffects = async () => {
-    setLoading(true);
-    const newSideEffects: Record<string, SideEffectsResult> = {};
-
-    for (const medicine of medicines) {
-      const apiUrl = `/api/side-effects?medicine=${encodeURIComponent(
-        medicine.body
-      )}`;
-
-      try {
-        const response = await fetch(apiUrl);
-        if (!response.ok)
-          throw new Error(`Error fetching data for ${medicine.body}`);
-
-        const data: SideEffectsResult = await response.json();
-        newSideEffects[medicine.body] = data;
-      } catch (error) {
-        toast({
-          title: `Failed to fetch side effects for ${medicine.body}`,
-          status: "error",
-          duration: 3000,
-          isClosable: true,
-        });
-      }
-    }
-
-    setSideEffects(newSideEffects);
-    setLoading(false);
-  };
-
   const filteredList = medicines.filter((medicine) =>
     medicine.body.toLowerCase().includes(search.toLowerCase())
   );
 
-  // Flatten results into the shape the (placeholder) charts expect.
-  const graphData = Object.entries(sideEffects).map(([medName, result]) =>
-    result.categories.flatMap((cat) =>
-      cat.effects.map((effect) => ({
-        category: cat.category,
-        occurrence: percentageToNumber(effect.percentage),
-        medicine: medName,
-      }))
-    )
-  );
-
   return (
-    <VStack p={4}>
-      <Heading mb={4} fontSize="xl">
-        Medicine Tracker
+    <VStack p={4} align="stretch">
+      <Heading mb={2} fontSize="xl">
+        Adverse effects
       </Heading>
       <SearchBar search={search} setSearch={setSearch} />
       <AddMedicine addMedicine={addMedicine} />
       <Button
         className=" font-bold py-2 px-4 rounded-md ml-5 mt-1 mr-10 border border-blue-400"
-        mt={4}
-        onClick={fetchSideEffects}
+        mt={2}
+        onClick={() => fetchSideEffects(medicines)}
         isLoading={loading}
+        alignSelf="flex-start"
       >
         Find Side Effects
       </Button>
@@ -169,23 +133,39 @@ const MainComponent: React.FC<MainComponentProps> = ({
 
       {/* 🔹 Side Effects Display */}
       {Object.keys(sideEffects).length > 0 && (
-        <VStack mt={4} p={4} borderWidth="1px" borderRadius="lg" w="100%">
-          <Heading size="md">Side Effects</Heading>
+        <VStack mt={4} p={4} borderWidth="1px" borderRadius="lg" w="100%" align="stretch">
+          {/* 🔹 View toggle */}
+          <div className="flex items-center gap-2">
+            <Button
+              size="sm"
+              colorScheme={viewMode === "overview" ? "blue" : "gray"}
+              onClick={() => setViewMode("overview")}
+            >
+              Overview
+            </Button>
+            <Button
+              size="sm"
+              colorScheme={viewMode === "details" ? "blue" : "gray"}
+              onClick={() => setViewMode("details")}
+            >
+              Details
+            </Button>
+            <Badge ml="auto" colorScheme="green">
+              {Object.values(sideEffects).filter(
+                (r) => r.source === "database"
+              ).length}{" "}
+              cached
+            </Badge>
+          </div>
 
-          {/* 🔹 Toggle Button */}
-          <Button
-            className=" font-bold py-2 px-4 rounded-md ml-5 mt-1 mr-10 border border-blue-400"
-            onClick={() => setViewMode(viewMode === "list" ? "graph" : "list")}
-            mb={4}
-          >
-            {viewMode === "list"
-              ? "Switch to Graph View"
-              : "Switch to List View"}
-          </Button>
+          {/* 🔹 Overview (comparison bars) */}
+          {viewMode === "overview" && (
+            <AdverseEffectsOverview sideEffects={sideEffects} />
+          )}
 
-          {/* 🔹 List View */}
-          {viewMode === "list" && Object.keys(sideEffects).length > 0 && (
-            <VStack w="100%">
+          {/* 🔹 Details (full per-drug data — nothing dismissed) */}
+          {viewMode === "details" && (
+            <VStack w="100%" align="stretch">
               {Object.entries(sideEffects).map(([medName, result]) => (
                 <Box
                   key={medName}
@@ -194,7 +174,7 @@ const MainComponent: React.FC<MainComponentProps> = ({
                   borderRadius="md"
                   w="100%"
                 >
-                  <Heading size="sm" mb={2} textAlign="left">
+                  <Heading size="sm" mb={2} textAlign="left" className="capitalize">
                     {medName}
                     <Badge
                       ml={2}
@@ -250,20 +230,6 @@ const MainComponent: React.FC<MainComponentProps> = ({
                 </Box>
               ))}
             </VStack>
-          )}
-
-          {/* 🔹 Graphical View (Placeholder) */}
-          {viewMode === "graph" && (
-            <Box p={4} w="100%" textAlign="center">
-              <Text fontSize="lg" fontWeight="bold">
-                Graphical representation.
-              </Text>
-              {/* 🚀 Placeholder for future graphs */}
-              <div className="max-w-sm mx-auto">
-                <RadarChart data={graphData} color={colors} />
-                <PieChart data={graphData} color={colors} />
-              </div>
-            </Box>
           )}
         </VStack>
       )}
