@@ -3,6 +3,10 @@ import { IconType } from "react-icons";
 export interface Medicine {
   id: string;
   body: string;
+  /** Optional dose, e.g. "500mg". Used by the schedule view. */
+  dose?: string;
+  /** Optional scheduled times in "HH:MM" format. Used by the schedule view. */
+  times?: string[];
 }
 
 export interface MedicineListProps {

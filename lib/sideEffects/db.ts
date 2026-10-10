@@ -11,9 +11,14 @@ const DATA_DIR = join(process.cwd(), "lib", "data");
 const DB_PATH = join(DATA_DIR, "medicine.db");
 const WASM_PATH = join(DATA_DIR, "sql-wasm.wasm");
 
-let mapPromise: Promise<Map<string, string>> | null = null;
+interface DbData {
+  byName: Map<string, string>; // lowercased name -> raw text
+  names: string[]; // display names, sorted
+}
 
-async function load(): Promise<Map<string, string>> {
+let dataPromise: Promise<DbData> | null = null;
+
+async function load(): Promise<DbData> {
   const wasmBuffer = readFileSync(WASM_PATH);
   const wasmBinary = wasmBuffer.buffer.slice(
     wasmBuffer.byteOffset,
@@ -25,29 +30,33 @@ async function load(): Promise<Map<string, string>> {
   const fileBuffer = readFileSync(DB_PATH);
   const db = new SQL.Database(new Uint8Array(fileBuffer));
 
-  const map = new Map<string, string>();
+  const byName = new Map<string, string>();
+  const names: string[] = [];
   const stmt = db.prepare("SELECT medicine, symptoms FROM medicine_data");
   while (stmt.step()) {
     const row = stmt.getAsObject() as { medicine?: string; symptoms?: string };
     if (row.medicine) {
-      map.set(String(row.medicine).trim().toLowerCase(), String(row.symptoms ?? ""));
+      const display = String(row.medicine).trim();
+      byName.set(display.toLowerCase(), String(row.symptoms ?? ""));
+      names.push(display);
     }
   }
   stmt.free();
   db.close();
 
-  return map;
+  names.sort((a, b) => a.localeCompare(b));
+  return { byName, names };
 }
 
-function getMap(): Promise<Map<string, string>> {
-  if (!mapPromise) {
-    mapPromise = load().catch((err) => {
+function getData(): Promise<DbData> {
+  if (!dataPromise) {
+    dataPromise = load().catch((err) => {
       // Allow a later request to retry if loading failed.
-      mapPromise = null;
+      dataPromise = null;
       throw err;
     });
   }
-  return mapPromise;
+  return dataPromise;
 }
 
 /** Return the raw stored side-effect text for a medicine, or null if not in the snapshot. */
@@ -56,6 +65,12 @@ export async function getStoredSideEffects(
 ): Promise<string | null> {
   const key = medicine.trim().toLowerCase();
   if (!key) return null;
-  const map = await getMap();
-  return map.get(key) ?? null;
+  const { byName } = await getData();
+  return byName.get(key) ?? null;
+}
+
+/** Return all medicine display names in the snapshot (for search/autocomplete). */
+export async function getMedicineNames(): Promise<string[]> {
+  const { names } = await getData();
+  return names;
 }

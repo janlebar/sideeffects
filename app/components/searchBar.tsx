@@ -1,5 +1,5 @@
 import React from "react";
-import { Input, Box } from "@chakra-ui/react";
+import { FiSearch } from "react-icons/fi";
 
 interface SearchBarProps {
   search: string;
@@ -8,18 +8,15 @@ interface SearchBarProps {
 
 const SearchBar: React.FC<SearchBarProps> = ({ search, setSearch }) => {
   return (
-    <Box
-      w="100%"
-      maxW={{ base: "90vw", sm: "80vw", lg: "50vw", xl: "40vw" }}
-      mb={4}
-    >
-      <Input
-        placeholder="Search..."
+    <div className="relative w-full sm:max-w-sm">
+      <FiSearch className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+      <input
+        placeholder="Search medicines..."
         value={search}
         onChange={(e) => setSearch(e.target.value)}
-        variant="filled"
+        className="w-full rounded-lg border border-slate-200 bg-slate-50 py-2 pl-9 pr-3 text-sm text-slate-700 outline-none transition focus:border-blue-400 focus:bg-white"
       />
-    </Box>
+    </div>
   );
 };
 

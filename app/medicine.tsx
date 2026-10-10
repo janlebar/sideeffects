@@ -3,32 +3,16 @@
 "use client";
 
 import React, { useState, useEffect, useRef } from "react";
-import {
-  VStack,
-  Heading,
-  Button,
-  useToast,
-  Box,
-  Text,
-  Badge,
-} from "@chakra-ui/react";
+import { Button, useToast, Badge } from "@chakra-ui/react";
 import MedicineList from "./components/medicine/medicineList";
 import AddMedicine from "./components/medicine/addMedicine";
 import SearchBar from "./components/searchBar";
 import { Medicine, MainComponentProps, SideEffectsResult } from "./types";
 import AdverseEffectsOverview from "./components/medicine/adverseEffectsOverview";
 
-// Example medicines preloaded on first run so a new user sees how the app
-// works. They behave like normal medicines and can be deleted/replaced.
-const EXAMPLE_MEDICINES: Medicine[] = [
-  { id: "example-aspirin", body: "Aspirin" },
-  { id: "example-viagra", body: "Viagra" },
-];
-
 const MainComponent: React.FC<MainComponentProps> = ({
   medicines,
   setMedicines,
-  section,
 }) => {
   const [search, setSearch] = useState<string>("");
   const [sideEffects, setSideEffects] = useState<
@@ -38,30 +22,7 @@ const MainComponent: React.FC<MainComponentProps> = ({
   const toast = useToast();
   const [viewMode, setViewMode] = useState<"overview" | "details">("overview");
 
-  const didMount = useRef(false);
   const didInitialFetch = useRef(false);
-
-  // Load saved medicines, or seed the example set on the very first run.
-  useEffect(() => {
-    const stored = localStorage.getItem(`medicine_${section}`);
-    const seeded = localStorage.getItem("example_seeded");
-    if (stored) {
-      setMedicines(JSON.parse(stored));
-    } else if (!seeded) {
-      localStorage.setItem("example_seeded", "1");
-      setMedicines(EXAMPLE_MEDICINES);
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [section]);
-
-  // Persist medicines on every change after the initial mount.
-  useEffect(() => {
-    if (!didMount.current) {
-      didMount.current = true;
-      return;
-    }
-    localStorage.setItem(`medicine_${section}`, JSON.stringify(medicines));
-  }, [medicines, section]);
 
   const fetchSideEffects = async (list: Medicine[]) => {
     setLoading(true);
@@ -113,71 +74,83 @@ const MainComponent: React.FC<MainComponentProps> = ({
     medicine.body.toLowerCase().includes(search.toLowerCase())
   );
 
-  return (
-    <VStack p={4} align="stretch">
-      <Heading mb={2} fontSize="xl">
-        Adverse effects
-      </Heading>
-      <SearchBar search={search} setSearch={setSearch} />
-      <AddMedicine addMedicine={addMedicine} />
-      <Button
-        className=" font-bold py-2 px-4 rounded-md ml-5 mt-1 mr-10 border border-blue-400"
-        mt={2}
-        onClick={() => fetchSideEffects(medicines)}
-        isLoading={loading}
-        alignSelf="flex-start"
-      >
-        Find Side Effects
-      </Button>
-      <MedicineList medicine={filteredList} deleteMedicine={deleteMedicine} />
+  const cachedCount = Object.values(sideEffects).filter(
+    (r) => r.source === "database"
+  ).length;
 
-      {/* 🔹 Side Effects Display */}
+  return (
+    <div className="mx-auto w-full max-w-6xl space-y-4">
+      {/* Controls */}
+      <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+          <SearchBar search={search} setSearch={setSearch} />
+          <Button
+            size="sm"
+            colorScheme="blue"
+            className="sm:ml-auto"
+            onClick={() => fetchSideEffects(medicines)}
+            isLoading={loading}
+          >
+            Find Side Effects
+          </Button>
+        </div>
+
+        <div className="mt-4">
+          <AddMedicine addMedicine={addMedicine} />
+        </div>
+
+        <div className="mt-4">
+          <MedicineList medicine={filteredList} deleteMedicine={deleteMedicine} />
+        </div>
+      </div>
+
+      {/* Side effects */}
       {Object.keys(sideEffects).length > 0 && (
-        <VStack mt={4} p={4} borderWidth="1px" borderRadius="lg" w="100%" align="stretch">
-          {/* 🔹 View toggle */}
-          <div className="flex items-center gap-2">
-            <Button
-              size="sm"
-              colorScheme={viewMode === "overview" ? "blue" : "gray"}
-              onClick={() => setViewMode("overview")}
-            >
-              Overview
-            </Button>
-            <Button
-              size="sm"
-              colorScheme={viewMode === "details" ? "blue" : "gray"}
-              onClick={() => setViewMode("details")}
-            >
-              Details
-            </Button>
-            <Badge ml="auto" colorScheme="green">
-              {Object.values(sideEffects).filter(
-                (r) => r.source === "database"
-              ).length}{" "}
-              cached
-            </Badge>
+        <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+          <div className="mb-4 flex items-center gap-2">
+            <div className="inline-flex rounded-lg border border-slate-200 bg-slate-50 p-0.5">
+              <button
+                onClick={() => setViewMode("overview")}
+                className={`rounded-md px-3 py-1.5 text-sm font-medium transition ${
+                  viewMode === "overview"
+                    ? "bg-white text-brand-blue shadow-sm"
+                    : "text-slate-600 hover:text-slate-800"
+                }`}
+              >
+                Overview
+              </button>
+              <button
+                onClick={() => setViewMode("details")}
+                className={`rounded-md px-3 py-1.5 text-sm font-medium transition ${
+                  viewMode === "details"
+                    ? "bg-white text-brand-blue shadow-sm"
+                    : "text-slate-600 hover:text-slate-800"
+                }`}
+              >
+                Details
+              </button>
+            </div>
+            <span className="ml-auto rounded-full bg-emerald-100 px-2.5 py-1 text-xs font-medium text-emerald-700">
+              {cachedCount} cached
+            </span>
           </div>
 
-          {/* 🔹 Overview (comparison bars) */}
           {viewMode === "overview" && (
             <AdverseEffectsOverview sideEffects={sideEffects} />
           )}
 
-          {/* 🔹 Details (full per-drug data — nothing dismissed) */}
           {viewMode === "details" && (
-            <VStack w="100%" align="stretch">
+            <div className="space-y-3">
               {Object.entries(sideEffects).map(([medName, result]) => (
-                <Box
+                <div
                   key={medName}
-                  p={3}
-                  borderWidth="1px"
-                  borderRadius="md"
-                  w="100%"
+                  className="rounded-lg border border-slate-200 p-3"
                 >
-                  <Heading size="sm" mb={2} textAlign="left" className="capitalize">
-                    {medName}
+                  <div className="mb-2 flex items-center gap-2">
+                    <h3 className="text-sm font-semibold capitalize text-slate-800">
+                      {medName}
+                    </h3>
                     <Badge
-                      ml={2}
                       colorScheme={
                         result.source === "database"
                           ? "green"
@@ -192,48 +165,46 @@ const MainComponent: React.FC<MainComponentProps> = ({
                         ? "live"
                         : "no data"}
                     </Badge>
-                  </Heading>
+                  </div>
 
                   {result.categories.length === 0 ? (
-                    <Text fontSize="sm" color="gray.500">
+                    <p className="text-sm text-slate-400">
                       No side-effect data found.
-                    </Text>
+                    </p>
                   ) : (
                     result.categories.map((cat) => (
-                      <Box
+                      <div
                         key={cat.category}
-                        p={2}
-                        mb={2}
-                        borderBottom="1px solid #ccc"
+                        className="border-b border-slate-100 py-2 last:border-0"
                       >
-                        <Text fontWeight="bold">{cat.category}</Text>
+                        <p className="text-sm font-semibold text-slate-700">
+                          {cat.category}
+                        </p>
                         {cat.effects.map((effect, i) => (
-                          <Box key={`${effect.frequency}-${i}`} mt={1}>
-                            <Text fontSize="sm" fontWeight="semibold">
+                          <div key={`${effect.frequency}-${i}`} className="mt-1">
+                            <p className="text-xs font-medium text-slate-500">
                               {effect.frequency}
                               {effect.percentage
                                 ? ` (${effect.percentage})`
                                 : ""}
-                            </Text>
-                            <ul style={{ paddingLeft: "20px" }}>
+                            </p>
+                            <ul className="ml-4 list-disc text-sm text-slate-700">
                               {effect.symptoms.map((symptom, index) => (
-                                <li key={index}>
-                                  <Text fontSize="sm">{symptom}</Text>
-                                </li>
+                                <li key={index}>{symptom}</li>
                               ))}
                             </ul>
-                          </Box>
+                          </div>
                         ))}
-                      </Box>
+                      </div>
                     ))
                   )}
-                </Box>
+                </div>
               ))}
-            </VStack>
+            </div>
           )}
-        </VStack>
+        </div>
       )}
-    </VStack>
+    </div>
   );
 };
 

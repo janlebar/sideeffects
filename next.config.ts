@@ -17,6 +17,10 @@ const nextConfig: NextConfig = {
       "./lib/data/medicine.db",
       "./lib/data/sql-wasm.wasm",
     ],
+    "/api/medicine-names/**": [
+      "./lib/data/medicine.db",
+      "./lib/data/sql-wasm.wasm",
+    ],
     "/api/scrape/**": ["./lib/data/medicine.db", "./lib/data/sql-wasm.wasm"],
   },
 };
